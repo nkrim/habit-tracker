@@ -7,6 +7,9 @@
 	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 	<meta name="description" content="A calendar for tracking your habits in order to visually see your consistency and progress and encourage dedication.">
 
+	<!-- Style -->
+	<link rel="stylesheet" href="/static/style.css">
+
 	<!-- Scripts -->
 	<script src="/static/js/jquery.min.js"></script>
 </head>
@@ -140,8 +143,9 @@
 				return elem;
 			}
 
-			add_circle(x, y, r, other_attrs) {
+			add_circle(id, x, y, r, other_attrs) {
 				let attrs = {
+					'id': id,
 					'cx': x + this._context.x,
 					'cy': y + this._context.y,
 					'r': r,
@@ -150,28 +154,193 @@
 					Object.assign(attrs, other_attrs);
 				return this.add_elem('circle', attrs);
 			}
+
+			add_line(id, x1, y1, x2, y2, other_attrs) {
+				let attrs = {
+					'id': id,
+					'x1': x1 + this._context.x,
+					'y1': y1 + this._context.y,
+					'x2': x2 + this._context.x,
+					'y2': y2 + this._context.y,
+				};
+				if(other_attrs)
+					Object.assign(attrs, other_attrs);
+				return this.add_elem('line', attrs);
+			}
+
+			add_slice(id, cx, cy, r, start_angle, theta, other_attrs) {
+				// Adjust points for context
+				cx += this._context.x;
+				cy += this._context.y;
+				// Get the start and end points for the arc
+				let x1 = cx + r*Math.sin(start_angle);
+				let y1 = cy - r*Math.cos(start_angle);
+				let x4 = cx + r*Math.sin(start_angle + theta);
+				let y4 = cy - r*Math.cos(start_angle + theta);
+
+				// Compute control points for bezier (math by @k88lawrence from https://stackoverflow.com/questions/734076/how-to-best-approximate-a-geometrical-arc-with-a-bezier-curve)
+				let ax = x1 - cx;
+				let ay = y1 - cy;
+				let bx = x4 - cx;
+				let by = y4 - cy;
+				let q1 = ax * ax + ay * ay;
+				let q2 = q1 + ax * bx + ay * by;
+				let k2 = (4/3) * (Math.sqrt(2 * q1 * q2) - q2) / (ax * by - ay * bx);
+
+				let x2 = cx + ax - k2 * ay;
+				let y2 = cy + ay + k2 * ax;
+				let x3 = cx + bx + k2 * by;
+				let y3 = cy + by - k2 * bx;
+
+				// Create path for slice
+				console.log(cy);
+				console.log(y1);
+				let slice_path = `M ${cx} ${cy} L ${x1} ${y1} C ${x2} ${y2}, ${x3} ${y3}, ${x4} ${y4} Z`;
+				// Consctruct element
+				let attrs = {
+					'id': id, 
+					'd': slice_path,
+				}
+				if(other_attrs)
+					Object.assign(attrs, other_attrs);
+				return this.add_elem('path', attrs);
+			}
+
+			add_text(id, x, y, text, other_attrs) {
+				let attrs = {
+					'id': id,
+					'x': x + this._context.x,
+					'y': y + this._context.y,
+				}
+				if(other_attrs)
+					Object.assign(attrs, other_attrs);
+				let elem = svg_elem('text', attrs);
+				elem.textContent = text;
+				this._context.elem.appendChild(elem);
+				return elem;
+			}
+		}
+	</script>
+
+	<!-- Calendar Layout -->
+	<script type="text/javascript">
+		class Calendar {
+			/* CONSTRUCTOR
+			-------------- */
+			constructor() {
+				let now = new Date(Date.now());
+				this.date = now.getDate();
+				this.month = now.getMonth();
+				this.year = now.getFullYear();
+			}
+
+			/* VIEW CHANGES
+			--------------- */
+			shift_month_forward() {
+				if(this.month == 11) {
+					this.month = 0;
+					this.year += 1;
+				}
+				else {
+					this.month += 1;
+				}
+				// If returning to current month, set date to today, otherwise set to null
+				let now = new Date(Date.now());
+				if(now.getMonth() == this.month)
+					this.date = now.getDate();
+				else
+					this.date = null;
+				// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+				// REFRESH CALENDAR VIEW
+			}
+			shift_month_backward() {
+				if(this.month == 0) {
+					this.month = 11;
+					this.year -= 1;
+				}
+				else {
+					this.month -= 1;
+				}
+				// If returning to current month, set date to today, otherwise set to null
+				let now = new Date(Date.now());
+				if(now.getMonth() == this.month)
+					this.date = now.getDate();
+				else
+					this.date = null;
+				// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+				// REFRESH CALENDAR VIEW
+			}
+
+			/* RENDERING
+			------------ */
+			generate_calendar(gen) {
+				// CONSTANTS
+				let date_radius = 40;
+				let date_padding = 16;
+				// ---------
+
+				// Get day of the week for first of the month
+				let first_day = new Date(this.year, this.month, 1).getDay();
+				// Get number of days (day=0 makes it show the last day of the current month, sinche month+1)
+				let num_days = new Date(this.year, this.month+1, 0).getDate();
+				// Get number of rows of dates
+				let num_rows = 1 + Math.ceil((num_days - (7 - first_day))/7);
+
+				// Start generating
+				var cur_date = 1;
+				for(var i = 0; i<num_rows; i += 1) {
+					let row_center = date_radius + 2*i*(date_radius + date_padding);
+					gen.new_layer(`row${i}`, 0, row_center, {'fill':'transparent'});
+					var j = i === 0 ? first_day : 0;
+					while(j<7 && cur_date <= num_days) {
+						let xc = date_radius + 2*j*(date_radius + date_padding);
+						gen.new_layer('day${cur_date}', xc, 0);
+							gen.add_circle(null, 0, 0, date_radius, 
+								{'stroke': 'black', 'stroke-width': 2});
+							gen.add_text(null, 0, 0, cur_date, {'fill': 'black', 'text-anchor': 'middle', 'alignment-baseline': 'central'})
+						gen.end_layer();
+
+						j += 1;
+						cur_date += 1;
+					}
+					gen.end_layer();
+				}
+			}
 		}
 	</script>
 
 	<!-- Main -->
 	<script type="text/javascript">
 		$(document).ready(function() {
-			let gen = new SvgGenerator('calendar', 800, 600);
+			let gen = new SvgGenerator('calendar', 1200, 800);
 
-			gen.new_layer('dates', 100, 100, {
+			/*gen.new_layer('dates', 100, 100, {
 				'fill': 'transparent', 
 				'stroke': '#000',
 				'stroke-width': 2,
 			});
-				gen.add_circle(50, 50, 40);
+				gen.add_circle(null, 50, 50, 40);
 				gen.new_layer(null, 50, 50);
-					gen.add_circle(0, 0, 20);
+					gen.add_circle(null, 0, 0, 20);
 					gen.end_layer();
 				gen.new_layer(null, 80, 80);
-					gen.add_circle(0, 0, 40);
+					gen.new_layer(null, 0, 0, {'stroke': 'transparent'})
+						gen.add_slice(null, 0, 0, 99.5, 0, Math.PI*2/3, {'fill': 'cyan'});
+						gen.add_slice(null, 0, 0, 99.5, Math.PI*2/3, Math.PI*2/3, {'fill': 'orange'});
+						gen.add_slice(null, 0, 0, 99.5, Math.PI*4/3, Math.PI*2/3, {'fill': 'green'});
+						gen.end_layer();
+					gen.add_circle(null, 0, 0, 100);
+					gen.add_circle(null, 0, 0, 24, {'fill': 'white', 'stroke': 'transparent'});
+					gen.add_text(null, 0, 0, '01', {'fill': 'black', 'stroke-width': 0, 'text-anchor': 'middle', 'alignment-baseline': 'central'});
+			gen.flush();*/
 
+			let calendar = new Calendar();
 
+			gen.new_layer(null, 10, 10);
+			calendar.generate_calendar(gen);
 			gen.flush();
+
+
 			let container = $('#calendarContainer');
 			container.append(gen.svg);
 		});
