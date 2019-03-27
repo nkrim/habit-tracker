@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<!-- General Meta Tags -->
+	<title>Habit Tracker</title>
+	<meta name="viewport" content="width=device-width, height=device-height, initial-scale=1, user-scalable=no">
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="description" content="A calendar for tracking your habits in order to visually see your consistency and progress and encourage dedication.">
+
+	<!-- Scripts -->
+	<script src="/static/js/jquery.min.js"></script>
+</head>
+<body>
+
+	<div id="calendarContainer">
+		
+	</div>
+
+
+	<!-- Scripts -->
+	<!-- SVG Generator -->
+	<script type="text/javascript">
+		/* SVG ELEMENT GENERATORS
+		========================= */
+		function svg_elem(tag, attrs) {
+			let elem = document.createElementNS('http://www.w3.org/2000/svg', tag);
+			Object.entries(attrs).forEach(entry => {
+				let key = entry[0];
+				let val = entry[1];
+				if(val !== null && val !== undefined)
+					elem.setAttributeNS(null, key, val);
+			});
+			return elem;
+		}
+
+		function svg_svg(id, width, height, other_attrs) {
+			let attrs = {
+				'id': id,
+				'width': width,
+				'height': height,
+			};
+			if(other_attrs)
+				Object.assign(attrs, other_attrs);
+			return svg_elem('svg', attrs);
+		}
+
+		function svg_g(id, other_attrs) {
+			let attrs = {
+				'id': id,
+			};
+			if(other_attrs)
+				Object.assign(attrs, other_attrs);
+			return svg_elem('g', attrs);
+		}
+
+
+		/* CONTEXT BASED SVG-GENERATOR UTILITY
+		====================================== */
+		class SvgGenerator {
+			/* CONSTRUCTOR
+			-------------- */
+			constructor(id, width, height) {
+				this._svg = svg_svg(id, width, height);
+				this._context = {
+					'elem': this._svg,
+					'x': 0,
+					'y': 0,
+				};
+				this._context_stack = [this._context];
+			}
+
+			/* GETTERS
+			---------- */
+			get svg() {
+				return this._svg;
+			}
+			get context() {
+				return this._context;
+			}
+			get context_elem() {
+				if(!this._context)
+					return null;
+				return this._context.elem;
+			}
+			get context_x() {
+				if(!this._context)
+					return null;
+				return this._context.x;
+			}
+			get context_y() {
+				if(!this._context)
+					return null;
+				return this._context.y;
+			}
+			get context_id() {
+				if(!this._context)
+					return null;
+				return this._context.elem.getAttribute('id');
+			}
+
+			/* QUERIES
+			---------- */
+			at_base_layer() {
+				return this._context_stack.length === 1;
+			}
+
+			/* CONTEXT MANIPULATION
+			----------------------- */
+			new_layer(id, x=0, y=0, other_attrs) {
+				let g = svg_g(id, other_attrs);
+				let new_context = {
+					'elem': g,
+					'x': x + this._context.x,
+					'y': y + this._context.y,
+				}
+				this._context = new_context;
+				this._context_stack.push(new_context);
+				return g;
+			}
+
+			end_layer() {
+				if(this.at_base_layer())
+					return false;
+				let popped_elem = this._context_stack.pop().elem;
+				this._context = this._context_stack[this._context_stack.length - 1];
+				// Append the finished layer to the parent layer
+				this._context.elem.appendChild(popped_elem);
+				return true;
+			}
+
+			flush() {
+				while(this.end_layer());
+			}
+
+			/* GENERATION FUNCTIONS
+			----------------------- */
+			add_elem(tag, attrs) {
+				let elem = svg_elem(tag, attrs);
+				this._context.elem.appendChild(elem);
+				return elem;
+			}
+
+			add_circle(x, y, r, other_attrs) {
+				let attrs = {
+					'cx': x + this._context.x,
+					'cy': y + this._context.y,
+					'r': r,
+				};
+				if(other_attrs)
+					Object.assign(attrs, other_attrs);
+				return this.add_elem('circle', attrs);
+			}
+		}
+	</script>
+
+	<!-- Main -->
+	<script type="text/javascript">
+		$(document).ready(function() {
+			let gen = new SvgGenerator('calendar', 800, 600);
+
+			gen.new_layer('dates', 100, 100, {
+				'fill': 'transparent', 
+				'stroke': '#000',
+				'stroke-width': 2,
+			});
+				gen.add_circle(50, 50, 40);
+				gen.new_layer(null, 50, 50);
+					gen.add_circle(0, 0, 20);
+					gen.end_layer();
+				gen.new_layer(null, 80, 80);
+					gen.add_circle(0, 0, 40);
+
+
+			gen.flush();
+			let container = $('#calendarContainer');
+			container.append(gen.svg);
+		});
+	</script>
+</body>
+</html>
