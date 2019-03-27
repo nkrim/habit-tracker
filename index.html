@@ -222,12 +222,101 @@
 		}
 	</script>
 
+	<!-- Habit Tracker / Database -->
+	<script type="text/javascript">
+		/* CONSTANTS
+		------------ */
+		let max_habits = 16;
+
+		class HabitTracker {
+			/* CONSTRUCTOR
+			-------------- */
+			constructor() {
+				// Can hold 16 habit objects, which contain a `name` entry and a `color` entry
+				this.habits = [];
+				// Tracker contains entry for each year with a tracked date, and within that a year object
+				// Year object contains entry for each day with a tracked habit in the form 'mm-dd'
+				// Each tracked day has a 16-bit bit-map of indexed habits (serialized into 2 characters)
+				this.tracker = {}; 
+			}
+
+			/* GETTERS
+			---------- */
+			get num_habits() {
+				return this.habits.length;
+			}
+
+			/* Modifiers
+			------------ */
+			add_habit(name, color) {
+				if(this.habits.length >= max_habits) {
+					console.warn(`CANNOT ADD HABIT: reached maximum of ${max_habits}`);
+					return false;
+				}
+				this.habits.push({'name': name, 'color': color});
+				return true;
+			}
+			remove_habit(index) {
+				if(index >= this.habits.length) {
+					console.warn(`CANNOT REMOVE HABIT: index:${i} is out of bounds`);
+					return false;
+				}
+				this.habits.splice(index, 1);
+				return true;
+			}
+
+			add_tracked_habit(year, month, date, habit_index) {
+				// If year entry doesn't exist, create it
+				let year_entry = this.tracker[year];
+				if(year_entry === undefined) {
+					year_entry = {};
+					this.tracker[year] = year_entry;
+				}
+				// Get date key for date entry
+				let date_key = `${month < 10 ? '0'+month : month}-${date < 10 ? '0'+date : date}`;
+				// If habit is already tracked, return false
+				if(year_entry[date_key] & (1<<habit_index))
+					return false;
+				// Add the tracked habit to the bit-map (undefined acts like 0)
+				year_entry[date_key] |= (1<<habit_index);
+				return true;
+			}
+
+			remove_tracked_habit(year, month, date, habit_index) {
+				// If year entry doesn't exist, return false
+				let year_entry = this.tracker[year];
+				if(year_entry === undefined)
+					return false;
+				// Get date key for date entry
+				let date_key = `${month < 10 ? '0'+month : month}-${date < 10 ? '0'+date : date}`;
+				// If habit is not tracked, return false
+				if(!(year_entry[date_key] & (1<<habit_index)))
+					return false;
+				// Remove the tracked habit form the bit-map
+				year_entry[date_key] &= ~(1<<habit_index);
+				return true;
+			}
+
+			/* Serialization / Decoding
+			--------------------------- */
+			serialize_habits() {
+
+			}
+
+			serialize_tracker() {
+
+			}
+
+		}
+	</script>
+
 	<!-- Calendar Layout -->
 	<script type="text/javascript">
 		class Calendar {
 			/* CONSTRUCTOR
 			-------------- */
-			constructor() {
+			constructor(habit_tracker) {
+				this.habit_tracker = habit_tracker;
 				let now = new Date(Date.now());
 				this.date = now.getDate();
 				this.month = now.getMonth();
@@ -285,6 +374,8 @@
 				let num_days = new Date(this.year, this.month+1, 0).getDate();
 				// Get number of rows of dates
 				let num_rows = 1 + Math.ceil((num_days - (7 - first_day))/7);
+				// Get the year_entry from habit_tracker
+				let year_entry = this.habit_tracker.tracker[this.year];
 
 				// Start generating
 				var cur_date = 1;
@@ -294,7 +385,47 @@
 					var j = i === 0 ? first_day : 0;
 					while(j<7 && cur_date <= num_days) {
 						let xc = date_radius + 2*j*(date_radius + date_padding);
-						gen.new_layer('day${cur_date}', xc, 0);
+						gen.new_layer(`day${cur_date}`, xc, 0);
+
+							// Determine slices to show from habit tracker
+							if(year_entry && this.habit_tracker.num_habits) {
+								let date_key = `${this.month < 10 ? '0'+this.month : this.month}-${cur_date < 10 ? '0'+cur_date : cur_date}`;
+								let date_entry = year_entry[date_key];
+								let slice_theta = 2*Math.PI/this.habit_tracker.num_habits;
+								// Full circle case
+								if(this.habit_tracker.num_habits === 1) {
+									if(date_entry) {
+										let habit_color = this.habit_tracker.habits[0].color;
+										gen.add_circle(null, 0, 0, date_radius-0.5, {'fill': habit_color});
+									}
+								}
+								// Slice case
+								else {
+									for(var k=0; k<this.habit_tracker.num_habits; k+=1) {
+										if(date_entry & (1<<k)) {
+											console.log(date_entry);
+											let habit_color = this.habit_tracker.habits[k].color;
+											// Half circle case
+											if(this.habit_tracker.num_habits === 2) {
+												let slice_theta_half = slice_theta/2;
+												gen.new_layer(null, 0, 0);
+												gen.add_slice(null, 0, 0, date_radius-0.5, k*slice_theta, slice_theta_half, 
+												{'fill': habit_color});
+												gen.add_slice(null, 0, 0, date_radius-0.5, k*slice_theta+slice_theta_half, slice_theta_half, 
+												{'fill': habit_color});
+												gen.end_layer();
+											}
+											// All other slice cases
+											else {
+												gen.add_slice(null, 0, 0, date_radius-0.5, k*slice_theta, slice_theta, 
+												{'fill': habit_color});
+											}
+										}
+									}
+								}
+							}
+
+							// Draw circle and text
 							gen.add_circle(null, 0, 0, date_radius, 
 								{'stroke': 'black', 'stroke-width': 2});
 							gen.add_text(null, 0, 0, cur_date, {'fill': 'black', 'text-anchor': 'middle', 'alignment-baseline': 'central'})
@@ -334,7 +465,14 @@
 					gen.add_text(null, 0, 0, '01', {'fill': 'black', 'stroke-width': 0, 'text-anchor': 'middle', 'alignment-baseline': 'central'});
 			gen.flush();*/
 
-			let calendar = new Calendar();
+			let habit_tracker = new HabitTracker();
+			let calendar = new Calendar(habit_tracker);
+
+			habit_tracker.add_habit('Brushing', 'Cyan');
+			habit_tracker.add_habit('Work', 'Orange');
+			habit_tracker.add_habit('Pee', 'Yellow');
+			habit_tracker.add_tracked_habit(2019, 2, 21, 1);
+			habit_tracker.add_tracked_habit(2019, 2, 21, 0);
 
 			gen.new_layer(null, 10, 10);
 			calendar.generate_calendar(gen);
