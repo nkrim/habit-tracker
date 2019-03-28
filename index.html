@@ -193,8 +193,6 @@
 				let y3 = cy + by - k2 * bx;
 
 				// Create path for slice
-				console.log(cy);
-				console.log(y1);
 				let slice_path = `M ${cx} ${cy} L ${x1} ${y1} C ${x2} ${y2}, ${x3} ${y3}, ${x4} ${y4} Z`;
 				// Consctruct element
 				let attrs = {
@@ -258,14 +256,29 @@
 			}
 			remove_habit(index) {
 				if(index >= this.habits.length) {
-					console.warn(`CANNOT REMOVE HABIT: index:${i} is out of bounds`);
+					console.warn(`CANNOT REMOVE HABIT: index:${index} is out of bounds`);
 					return false;
 				}
 				this.habits.splice(index, 1);
+				// Adjust ALL tracked habits to match bit-flag reperesentation
+				var shift_mask = ~0 << (index+1);
+				var nonshift_mask = ~shift_mask >> 1;
+				for(var year_id in this.tracker) { // !!!!! FIX THIS WHEN YOU HAVE INTERNET, ITERATE OVER VALUES
+					var year_entry = this.tracker[year_id];
+					for(var date_id in year_entry) {
+						var date_entry = year_entry[date_id];
+						date_entry = ((date_entry&shift_mask) >> 1) | (date_entry&nonshift_mask);
+						year_entry[date_id] = date_entry;
+					}
+				}
 				return true;
 			}
 
 			add_tracked_habit(year, month, date, habit_index) {
+				if(habit_index >= this.habits.length) {
+					console.warn(`CANNOT TRACK HABIT: index:${habit_index} is out of bounds`);
+					return false;
+				}
 				// If year entry doesn't exist, create it
 				let year_entry = this.tracker[year];
 				if(year_entry === undefined) {
@@ -403,7 +416,6 @@
 								else {
 									for(var k=0; k<this.habit_tracker.num_habits; k+=1) {
 										if(date_entry & (1<<k)) {
-											console.log(date_entry);
 											let habit_color = this.habit_tracker.habits[k].color;
 											// Half circle case
 											if(this.habit_tracker.num_habits === 2) {
