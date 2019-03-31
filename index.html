@@ -235,6 +235,7 @@
 				// Tracker contains entry for each year with a tracked date, and within that a year object
 				// Year object contains entry for each day with a tracked habit in the form 'mm-dd'
 				// Each tracked day has a 16-bit bit-map of indexed habits (serialized into 2 characters)
+				// Will look like `mm-dd:00;` (THERE MAY BE AN ISSUE WITH NULL CHAR WITH THIS, MUST LOOK UP)
 				this.tracker = {}; 
 			}
 
@@ -312,11 +313,16 @@
 
 			/* Serialization / Decoding
 			--------------------------- */
+			// Serialize directly to JSON
 			serialize_habits() {
 
 			}
 
+			// Return a object with year_ids mapped to serialized year_entries instead of 
 			serialize_tracker() {
+
+			}
+			serialize_year_entry(year_entry) {
 
 			}
 
