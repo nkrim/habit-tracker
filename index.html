@@ -262,12 +262,12 @@
 				}
 				this.habits.splice(index, 1);
 				// Adjust ALL tracked habits to match bit-flag reperesentation
-				var shift_mask = ~0 << (index+1);
-				var nonshift_mask = ~shift_mask >> 1;
-				for(var year_id in this.tracker) { // !!!!! FIX THIS WHEN YOU HAVE INTERNET, ITERATE OVER VALUES
-					var year_entry = this.tracker[year_id];
-					for(var date_id in year_entry) {
-						var date_entry = year_entry[date_id];
+				let shift_mask = ~0 << (index+1);
+				let nonshift_mask = ~shift_mask >> 1;
+				for(let year_id in this.tracker) { // !!!!! FIX THIS WHEN YOU HAVE INTERNET, ITERATE OVER VALUES
+					let year_entry = this.tracker[year_id];
+					for(let date_id in year_entry) {
+						let date_entry = year_entry[date_id];
 						date_entry = ((date_entry&shift_mask) >> 1) | (date_entry&nonshift_mask);
 						year_entry[date_id] = date_entry;
 					}
@@ -320,10 +320,25 @@
 
 			// Return a object with year_ids mapped to serialized year_entries instead of 
 			serialize_tracker() {
-
+				let serialized_tracker = {};
+				for(let year_key in this.tracker) {
+					serialized_tracker[year_key] = this.serialize_year_entry(this.tracker[year_key]);
+				}
+				return serialized_tracker;
 			}
 			serialize_year_entry(year_entry) {
-
+				let serialized = [];
+				for(let date_key in year_entry) {
+					let serialized_date = this.serialize_date_entry(date_key, year_entry[date_key]);
+					serialized.push(serialized_date);
+				}
+				return serialized.join('');
+			}
+			serialize_date_entry(date_key, date_entry) {
+				let mask = 0xff;
+				let char0 = String.fromCharCode(date_entry & mask);
+				let char1 = String.fromCharCode(date_entry & (mask<<2));
+				return `${date_key}:${char1}${char0},`;
 			}
 
 		}
@@ -397,11 +412,11 @@
 				let year_entry = this.habit_tracker.tracker[this.year];
 
 				// Start generating
-				var cur_date = 1;
-				for(var i = 0; i<num_rows; i += 1) {
+				let cur_date = 1;
+				for(let i = 0; i<num_rows; i += 1) {
 					let row_center = date_radius + 2*i*(date_radius + date_padding);
 					gen.new_layer(`row${i}`, 0, row_center, {'fill':'transparent'});
-					var j = i === 0 ? first_day : 0;
+					let j = i === 0 ? first_day : 0;
 					while(j<7 && cur_date <= num_days) {
 						let xc = date_radius + 2*j*(date_radius + date_padding);
 						gen.new_layer(`day${cur_date}`, xc, 0);
@@ -420,7 +435,7 @@
 								}
 								// Slice case
 								else {
-									for(var k=0; k<this.habit_tracker.num_habits; k+=1) {
+									for(let k=0; k<this.habit_tracker.num_habits; k+=1) {
 										if(date_entry & (1<<k)) {
 											let habit_color = this.habit_tracker.habits[k].color;
 											// Half circle case
@@ -489,13 +504,14 @@
 			habit_tracker.add_habit('Brushing', 'Cyan');
 			habit_tracker.add_habit('Work', 'Orange');
 			habit_tracker.add_habit('Pee', 'Yellow');
-			habit_tracker.add_tracked_habit(2019, 2, 21, 1);
-			habit_tracker.add_tracked_habit(2019, 2, 21, 0);
+			habit_tracker.add_tracked_habit(2019, 3, 21, 1);
+			habit_tracker.add_tracked_habit(2019, 3, 21, 0);
 
 			gen.new_layer(null, 10, 10);
 			calendar.generate_calendar(gen);
 			gen.flush();
 
+			console.log(habit_tracker.serialize_tracker()[2019].charCodeAt(7));
 
 			let container = $('#calendarContainer');
 			container.append(gen.svg);
