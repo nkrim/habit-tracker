@@ -21,6 +21,31 @@
 
 
 	<!-- Scripts -->
+	<!-- Cookie Handling -->
+	<script type="text/javascript">
+		// Returns an object based on all the cookies
+		function get_cookie_object() {
+			let cookie_obj = {};
+			let cookie_strings = document.cookie.split(';');
+			for(let str in cookie_strings) {
+				let match = /\s*(.+)=(.*)/;
+				if(match) {
+					let key = match[1];
+					let val = match[2];
+					cookie_obj[key] = decodeURIComponent(val);
+				}
+				else {
+					console.warn(`get_cookie_object: unable to parse cookie_string "${str}"`);
+				}
+			}
+			return cookie_obj;
+		}
+
+		function save_cookie(key, value) {
+			document.cookie = `${key}=${value}; expires=2147483647`;
+		}
+	</script>
+
 	<!-- SVG Generator -->
 	<script type="text/javascript">
 		/* SVG ELEMENT GENERATORS
@@ -169,6 +194,32 @@
 			}
 
 			add_slice(id, cx, cy, r, start_angle, theta, other_attrs) {
+				// Full_circle case
+				if(theta >= 2*Math.PI) {
+					return this.add_circle(id, cx, cy, r, other_attrs);
+				}
+				// 3/4 circle case
+				if(theta >= 1.5*Math.PI) {
+					let g = this.new_layer(null, 0, 0);
+					let quarter_circle = Math.PI/2;
+					this.add_slice(id, cx, cy, r, start_angle, quarter_circle, other_attrs);
+					start_angle += quarter_circle;
+					this.add_slice(id, cx, cy, r, start_angle, quarter_circle, other_attrs);
+					start_angle += quarter_circle;
+					this.add_slice(id, cx, cy, r, start_angle, theta - Math.PI, other_attrs);
+					this.end_layer();
+					return g;
+				}
+				// 1/2 circle case
+				if(theta >= Math.PI) {
+					let g = this.new_layer(null, 0, 0);
+					let quarter_circle = Math.PI/2;
+					this.add_slice(id, cx, cy, r, start_angle, quarter_circle, other_attrs);
+					this.add_slice(id, cx, cy, r, start_angle+quarter_circle, theta - quarter_circle, other_attrs);
+					this.end_layer();
+					return g;
+				}
+
 				// Adjust points for context
 				cx += this._context.x;
 				cy += this._context.y;
@@ -225,6 +276,7 @@
 		/* CONSTANTS
 		------------ */
 		let max_habits = 16;
+		let max_years = 10;
 
 		class HabitTracker {
 			/* CONSTRUCTOR
@@ -234,7 +286,7 @@
 				this.habits = [];
 				// Tracker contains entry for each year with a tracked date, and within that a year object
 				// Year object contains entry for each day with a tracked habit in the form 'mm-dd'
-				// Each tracked day has a 16-bit bit-map of indexed habits (serialized into 2 characters)
+				// Each tracked day has a 16-bit bit-map of indexed habits (serialized as 4-digit hex)
 				// Will look like `mm-dd:00;` (THERE MAY BE AN ISSUE WITH NULL CHAR WITH THIS, MUST LOOK UP)
 				this.tracker = {}; 
 			}
@@ -244,6 +296,10 @@
 			get num_habits() {
 				return this.habits.length;
 			}
+
+			static get_date_key(month, date) {
+				return `${month < 10 ? '0'+month : month}-${date < 10 ? '0'+date : date}`;
+			} 
 
 			/* Modifiers
 			------------ */
@@ -287,7 +343,7 @@
 					this.tracker[year] = year_entry;
 				}
 				// Get date key for date entry
-				let date_key = `${month < 10 ? '0'+month : month}-${date < 10 ? '0'+date : date}`;
+				let date_key = HabitTracker.get_date_key(month, date);
 				// If habit is already tracked, return false
 				if(year_entry[date_key] & (1<<habit_index))
 					return false;
@@ -302,7 +358,7 @@
 				if(year_entry === undefined)
 					return false;
 				// Get date key for date entry
-				let date_key = `${month < 10 ? '0'+month : month}-${date < 10 ? '0'+date : date}`;
+				let date_key = HabitTracker.get_date_key(month, date);
 				// If habit is not tracked, return false
 				if(!(year_entry[date_key] & (1<<habit_index)))
 					return false;
@@ -311,18 +367,33 @@
 				return true;
 			}
 
-			/* Serialization / Decoding
-			--------------------------- */
+			/* Serialization / Deserialization
+			---------------------------------- */
 			// Serialize directly to JSON
 			serialize_habits() {
-
+				return JSON.stringify(this.habits);
+			}
+			// Deserialize directly from JSON
+			deserialize_habits(habits_string) {
+				try {
+					let deserialized_habits = JSON.parse(habits_string);
+					this.habits = deserialized_habits;
+					return true;
+				}
+				catch(err) {
+					return false;
+				}
 			}
 
 			// Return a object with year_ids mapped to serialized year_entries instead of 
 			serialize_tracker() {
+				// Trim years to only allow the latest `max_years` amount to be serialized
+				let year_keys = Objet.keys(this.tracker).sort().reverse().slice(0,max_years);
+				// Serialize the years
 				let serialized_tracker = {};
-				for(let year_key in this.tracker) {
-					serialized_tracker[year_key] = this.serialize_year_entry(this.tracker[year_key]);
+				for(let year_key in year_keys) {
+					let serialized_year_key = `year${year_key}`;
+					serialized_tracker[serialized_year_key] = this.serialize_year_entry(this.tracker[year_key]);
 				}
 				return serialized_tracker;
 			}
@@ -335,12 +406,33 @@
 				return serialized.join('');
 			}
 			serialize_date_entry(date_key, date_entry) {
-				let mask = 0xff;
-				let char0 = String.fromCharCode(date_entry & mask);
-				let char1 = String.fromCharCode(date_entry & (mask<<2));
-				return `${date_key}:${char1}${char0},`;
+				return `${date_key}:${date_entry.toString(16)},`;
 			}
 
+			// Deserialize tracker
+			deserialize_tracker(cookie_object) {
+				this.tracker = {};
+				let re = /year(\d{4})/;
+				for(let key in cookie_object) {
+					let match = re.exec(key);
+					if(match) {
+						let year_id = match[1];
+						let serialized_entry = cookie_object[key];
+						this.tracker[year_id] = this.deserialize_year_entry(serialized_entry);
+					}
+				}
+			}
+			deserialize_year_entry(serialized) {
+				let year_entry = {};
+				let re = /(\d\d-\d\d):([abcdef\d]{1,4}),/g;
+				let match;
+				while(match = re.exec(serialized)) {
+					let date_key = match[1];
+					let date_entry = parseInt(match[2], 16);
+					year_entry[date_key] = date_entry;
+				}
+				return year_entry;
+			}
 		}
 	</script>
 
@@ -426,34 +518,11 @@
 								let date_key = `${this.month < 10 ? '0'+this.month : this.month}-${cur_date < 10 ? '0'+cur_date : cur_date}`;
 								let date_entry = year_entry[date_key];
 								let slice_theta = 2*Math.PI/this.habit_tracker.num_habits;
-								// Full circle case
-								if(this.habit_tracker.num_habits === 1) {
-									if(date_entry) {
-										let habit_color = this.habit_tracker.habits[0].color;
-										gen.add_circle(null, 0, 0, date_radius-0.5, {'fill': habit_color});
-									}
-								}
-								// Slice case
-								else {
-									for(let k=0; k<this.habit_tracker.num_habits; k+=1) {
-										if(date_entry & (1<<k)) {
-											let habit_color = this.habit_tracker.habits[k].color;
-											// Half circle case
-											if(this.habit_tracker.num_habits === 2) {
-												let slice_theta_half = slice_theta/2;
-												gen.new_layer(null, 0, 0);
-												gen.add_slice(null, 0, 0, date_radius-0.5, k*slice_theta, slice_theta_half, 
-												{'fill': habit_color});
-												gen.add_slice(null, 0, 0, date_radius-0.5, k*slice_theta+slice_theta_half, slice_theta_half, 
-												{'fill': habit_color});
-												gen.end_layer();
-											}
-											// All other slice cases
-											else {
-												gen.add_slice(null, 0, 0, date_radius-0.5, k*slice_theta, slice_theta, 
-												{'fill': habit_color});
-											}
-										}
+								for(let k=0; k<this.habit_tracker.num_habits; k+=1) {
+									if(date_entry & (1<<k)) {
+										let habit_color = this.habit_tracker.habits[k].color;
+										gen.add_slice(null, 0, 0, date_radius-0.5, k*slice_theta, slice_theta, 
+											{'fill': habit_color});
 									}
 								}
 							}
@@ -510,8 +579,6 @@
 			gen.new_layer(null, 10, 10);
 			calendar.generate_calendar(gen);
 			gen.flush();
-
-			console.log(habit_tracker.serialize_tracker()[2019].charCodeAt(7));
 
 			let container = $('#calendarContainer');
 			container.append(gen.svg);
