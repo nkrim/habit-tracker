@@ -27,8 +27,10 @@
 		function get_cookie_object() {
 			let cookie_obj = {};
 			let cookie_strings = document.cookie.split(';');
-			for(let str in cookie_strings) {
-				let match = /\s*(.+)=(.*)/;
+			let re = /\s*(.+)=(.*)/;
+			for(let i=0; i<cookie_strings.length; i+=1) {
+				let str = cookie_strings[i];
+				let match = re.exec(str);
 				if(match) {
 					let key = match[1];
 					let val = match[2];
@@ -42,7 +44,8 @@
 		}
 
 		function save_cookie(key, value) {
-			document.cookie = `${key}=${value}; expires=2147483647`;
+			document.cookie = `${key}=${encodeURIComponent(value)}; expires=2147483647`;
+			console.log(`${key}=${encodeURIComponent(value)}; expires=2147483647`);
 		}
 	</script>
 
@@ -320,7 +323,7 @@
 				// Adjust ALL tracked habits to match bit-flag reperesentation
 				let shift_mask = ~0 << (index+1);
 				let nonshift_mask = ~shift_mask >> 1;
-				for(let year_id in this.tracker) { // !!!!! FIX THIS WHEN YOU HAVE INTERNET, ITERATE OVER VALUES
+				for(let year_id in this.tracker) {
 					let year_entry = this.tracker[year_id];
 					for(let date_id in year_entry) {
 						let date_entry = year_entry[date_id];
@@ -374,25 +377,27 @@
 				return JSON.stringify(this.habits);
 			}
 			// Deserialize directly from JSON
-			deserialize_habits(habits_string) {
+			deserialize_habits(cookie_obj, use_alt) {
+				// Set get proper habits_string appropriate to use_alt
+				let habits_string = use_alt ? cookie_obj['~habits'] : cookie_obj['habits'];
 				try {
 					let deserialized_habits = JSON.parse(habits_string);
-					this.habits = deserialized_habits;
-					return true;
+					return deserialized_habits;
 				}
 				catch(err) {
-					return false;
+					return null;
 				}
 			}
 
 			// Return a object with year_ids mapped to serialized year_entries instead of 
 			serialize_tracker() {
 				// Trim years to only allow the latest `max_years` amount to be serialized
-				let year_keys = Objet.keys(this.tracker).sort().reverse().slice(0,max_years);
+				let year_keys = Object.keys(this.tracker).sort().reverse().slice(0,max_years);
 				// Serialize the years
 				let serialized_tracker = {};
-				for(let year_key in year_keys) {
-					let serialized_year_key = `year${year_key}`;
+				for(let i=0; i<year_keys.length; i+=1) {
+					let year_key = year_keys[i];
+					let serialized_year_key = `y${year_key}`;
 					serialized_tracker[serialized_year_key] = this.serialize_year_entry(this.tracker[year_key]);
 				}
 				return serialized_tracker;
@@ -410,17 +415,19 @@
 			}
 
 			// Deserialize tracker
-			deserialize_tracker(cookie_object) {
-				this.tracker = {};
-				let re = /year(\d{4})/;
-				for(let key in cookie_object) {
+			deserialize_tracker(cookie_obj, use_alt) {
+				let deserialized_tracker = {};
+				// Set the regex for key information
+				let re = use_alt ? /~y(\d{4})/ : /y(\d{4})/;
+				for(let key in cookie_obj) {
 					let match = re.exec(key);
 					if(match) {
 						let year_id = match[1];
-						let serialized_entry = cookie_object[key];
-						this.tracker[year_id] = this.deserialize_year_entry(serialized_entry);
+						let serialized_entry = cookie_obj[key];
+						deserialized_tracker[year_id] = this.deserialize_year_entry(serialized_entry);
 					}
 				}
+				return deserialized_tracker;
 			}
 			deserialize_year_entry(serialized) {
 				let year_entry = {};
@@ -432,6 +439,45 @@
 					year_entry[date_key] = date_entry;
 				}
 				return year_entry;
+			}
+
+			/* Saving and Loading Cookies
+			----------------------------- */
+			save_to_cookies() {
+				// Get object with current cookies
+				let cookie_obj = get_cookie_object();
+				// Serialize habits and tracker
+				let serialized_habits = this.serialize_habits();
+				let serialized_tracker = this.serialize_tracker();
+				// If use_alt exists and is set to 0, make alt keys: prefix cookie keys with "~"
+				let use_alt_cookie = cookie_obj['use_alt'];
+				let use_alt = use_alt_cookie === '0';
+				// Save habits
+				save_cookie(use_alt ? '~habits' : 'habits', serialized_habits);
+				// Save tracker year_entries
+				for(let key in serialized_tracker) {
+					save_cookie(use_alt ? `~${key}` : key, serialized_tracker[key]);
+				}
+				// Toggle the `use_alt` tracker
+				save_cookie('use_alt', use_alt ? 1 : 0);
+			}
+
+			load_from_cookies() {
+				// Get object with current cookies
+				let cookie_obj = get_cookie_object();
+				// If use_alt is set to 1, cookie keys prefixed with "_"
+				let use_alt_cookie = cookie_obj['use_alt'];
+				let use_alt = use_alt_cookie === '1';
+				// Load habits
+				let deserialized_habits = this.deserialize_habits(cookie_obj, use_alt);
+				// If habits fails to deserialize, don't even attempt to load tracker, return false as failure
+				if(deserialized_habits != null)
+					this.habits = deserialized_habits;
+				else
+					return false;
+				// Load tracker
+				this.tracker = this.deserialize_tracker(cookie_obj, use_alt);
+				return true;
 			}
 		}
 	</script>
@@ -575,6 +621,9 @@
 			habit_tracker.add_habit('Pee', 'Yellow');
 			habit_tracker.add_tracked_habit(2019, 3, 21, 1);
 			habit_tracker.add_tracked_habit(2019, 3, 21, 0);
+
+			// habit_tracker.load_from_cookies();
+			// habit_tracker.save_to_cookies();
 
 			gen.new_layer(null, 10, 10);
 			calendar.generate_calendar(gen);
