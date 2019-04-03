@@ -538,6 +538,9 @@
 				// CONSTANTS
 				let date_radius = 40;
 				let date_padding = 16;
+				let focus_radius = 45;
+
+				let stroke_and_text = 'rgba(0,0,0,0.3)';
 				// ---------
 
 				// Get day of the week for first of the month
@@ -573,10 +576,15 @@
 								}
 							}
 
+							// If is focused date, add an extra embelishing circle
+							if(cur_date === this.date) {
+								gen.add_circle(null, 0, 0, focus_radius, 
+									{'stroke': stroke_and_text, 'stroke-width': 1});
+							} 
 							// Draw circle and text
 							gen.add_circle(null, 0, 0, date_radius, 
-								{'stroke': 'black', 'stroke-width': 2});
-							gen.add_text(null, 0, 0, cur_date, {'fill': 'black', 'text-anchor': 'middle', 'alignment-baseline': 'central'})
+								{'stroke': stroke_and_text, 'stroke-width': 1});
+							gen.add_text(null, 0, 0, cur_date, {'fill': stroke_and_text, 'text-anchor': 'middle', 'alignment-baseline': 'central'})
 						gen.end_layer();
 
 						j += 1;

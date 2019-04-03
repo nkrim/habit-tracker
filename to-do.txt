@@ -1,0 +1,8 @@
+- Habit viewer
+- Focus date selection
+- Habit toggling for date
+- Habit creation / removal
+- Calendar month shifting
+
+- BG Visuals
+- Habit statistics
