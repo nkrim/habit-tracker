@@ -203,22 +203,22 @@
 				}
 				// 3/4 circle case
 				if(theta >= 1.5*Math.PI) {
-					let g = this.new_layer(null, 0, 0);
+					let g = this.new_layer(id, 0, 0, other_attrs);
 					let quarter_circle = Math.PI/2;
-					this.add_slice(id, cx, cy, r, start_angle, quarter_circle, other_attrs);
+					this.add_slice(null, cx, cy, r, start_angle, quarter_circle, other_attrs);
 					start_angle += quarter_circle;
-					this.add_slice(id, cx, cy, r, start_angle, quarter_circle, other_attrs);
+					this.add_slice(null, cx, cy, r, start_angle, quarter_circle, other_attrs);
 					start_angle += quarter_circle;
-					this.add_slice(id, cx, cy, r, start_angle, theta - Math.PI, other_attrs);
+					this.add_slice(null, cx, cy, r, start_angle, theta - Math.PI, other_attrs);
 					this.end_layer();
 					return g;
 				}
 				// 1/2 circle case
 				if(theta >= Math.PI) {
-					let g = this.new_layer(null, 0, 0);
+					let g = this.new_layer(id, 0, 0, other_attrs);
 					let quarter_circle = Math.PI/2;
-					this.add_slice(id, cx, cy, r, start_angle, quarter_circle, other_attrs);
-					this.add_slice(id, cx, cy, r, start_angle+quarter_circle, theta - quarter_circle, other_attrs);
+					this.add_slice(null, cx, cy, r, start_angle, quarter_circle, other_attrs);
+					this.add_slice(null, cx, cy, r, start_angle+quarter_circle, theta - quarter_circle, other_attrs);
 					this.end_layer();
 					return g;
 				}
@@ -269,6 +269,15 @@
 				let elem = svg_elem('text', attrs);
 				elem.textContent = text;
 				this._context.elem.appendChild(elem);
+				return elem;
+			}
+
+			add_use(id, href) {
+				let attrs = {
+					'id': id,
+				}
+				let elem = this.add_elem('use', attrs);
+				elem.setAttributeNS('http://www.w3.org/1999/xlink', 'xlink:href', `#${href}`);
 				return elem;
 			}
 		}
@@ -540,7 +549,8 @@
 				let date_padding = 16;
 				let focus_radius = 45;
 
-				let stroke_and_text = 'rgba(0,0,0,0.3)';
+				let alpha = 0.7;
+				let stroke_and_text = '#888';
 				// ---------
 
 				// Get day of the week for first of the month
@@ -553,6 +563,7 @@
 				let year_entry = this.habit_tracker.tracker[this.year];
 
 				// Start generating
+				gen.new_layer(null, 0, 0, {'style': `opacity: ${alpha};`});
 				let cur_date = 1;
 				for(let i = 0; i<num_rows; i += 1) {
 					let row_center = date_radius + 2*i*(date_radius + date_padding);
@@ -560,7 +571,7 @@
 					let j = i === 0 ? first_day : 0;
 					while(j<7 && cur_date <= num_days) {
 						let xc = date_radius + 2*j*(date_radius + date_padding);
-						gen.new_layer(`day${cur_date}`, xc, 0);
+						gen.new_layer(`day${cur_date}`, xc, 0, {'class':'date-circle'});
 
 							// Determine slices to show from habit tracker
 							if(year_entry && this.habit_tracker.num_habits) {
@@ -592,6 +603,69 @@
 					}
 					gen.end_layer();
 				}
+				gen.end_layer();
+			}
+
+			generate_habit_viewer(gen) {
+				// CONSTANTS
+				let viewer_radius = 60;
+				let habit_text_x = -80;
+				let habit_text_y = -80;
+				let habit_text_x_padding = 6;
+				let habit_text_length = 140;
+				let habit_text_underline_padding = 10;
+				let habit_focus_circle_radius = 4;
+				let habit_focus_circle_radius_coeff = 0.65;
+
+				let alpha = 0.7;
+				let stroke_and_text = '#888';
+				// ---------
+
+				gen.new_layer(null, 0, 0, {'style': `opacity: ${alpha}; pointer-events: none;`});
+				// Generate slices and habit text and line
+				if(this.habit_tracker.num_habits) {
+					let slice_theta = 2*Math.PI/this.habit_tracker.num_habits;
+					for(let k=0; k<this.habit_tracker.num_habits; k+=1) {
+						let habit = this.habit_tracker.habits[k]
+						// New layer for slice
+						gen.new_layer('habitViewerHabit', 0, 0);
+						// Generate slice
+						gen.add_slice('habitSlice', 0, 0, viewer_radius-0.5, k*slice_theta, slice_theta, 
+							{'fill': habit.color});
+						// Generate text
+						gen.new_layer(`habitText${k}`, 0, 0, {'class': 'habit-text'});
+						gen.add_text(null, habit_text_x, habit_text_y, habit.name, 
+							{'text-anchor': 'end', 'fill': stroke_and_text});
+						// Generate line under text
+						let slice_point_angle = (k*slice_theta) + (slice_theta/2);
+						let slice_point_x = habit_focus_circle_radius_coeff*viewer_radius*Math.sin(slice_point_angle);
+						let slice_point_y = -habit_focus_circle_radius_coeff*viewer_radius*Math.cos(slice_point_angle);
+						let line_attrs = {
+							'd': `M ${habit_text_x + habit_text_x_padding + gen._context.x - habit_text_length} ${habit_text_y + gen._context.y + habit_text_underline_padding} l ${habit_text_length} 0 L ${slice_point_x + gen._context.x} ${slice_point_y + gen._context.y}`,
+							'stroke': stroke_and_text,
+							'fill': 'transparent',
+						};
+						gen.add_elem('path', line_attrs);
+						// Generate small circle for end of line
+						gen.add_circle(null, slice_point_x, slice_point_y, habit_focus_circle_radius, 
+							{'fill': habit.color, 'stroke': stroke_and_text, 'stroke-width': 1});
+						gen.end_layer();
+
+						// End layer
+						gen.end_layer();
+					}
+				}
+
+				// Draw circle
+				gen.add_circle(null, 0, 0, viewer_radius, 
+					{'fill': 'transparent', 'stroke': stroke_and_text, 'stroke-width': 2});
+
+				// Generate use tags for habitText
+				for(let k=0; k<this.habit_tracker.num_habits-1; k+=1) {
+					gen.add_use(null, `habitText${k}`);
+				}
+
+				gen.end_layer();
 			}
 		}
 	</script>
@@ -599,6 +673,8 @@
 	<!-- Main -->
 	<script type="text/javascript">
 		$(document).ready(function() {
+			let time_start = Date.now();
+
 			let gen = new SvgGenerator('calendar', 1200, 800);
 
 			/*gen.new_layer('dates', 100, 100, {
@@ -633,12 +709,19 @@
 			// habit_tracker.load_from_cookies();
 			// habit_tracker.save_to_cookies();
 
-			gen.new_layer(null, 10, 10);
-			calendar.generate_calendar(gen);
+			gen.new_layer(null, 10, 140);
+				calendar.generate_calendar(gen);
+				gen.end_layer();
+			gen.new_layer(null, 860, 140);
+				calendar.generate_habit_viewer(gen);
 			gen.flush();
 
 			let container = $('#calendarContainer');
 			container.append(gen.svg);
+
+			let time_end = Date.now();
+			let time_to_process = (time_end - time_start)/1000;
+			console.log(`Calendar rendered in: ${time_to_process}s`);
 		});
 	</script>
 </body>

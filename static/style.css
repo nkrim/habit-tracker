@@ -2,3 +2,13 @@ svg text {
 	font-family: "Courier New", Courier, monospace;
 	font-size: 24px;
 }
+
+svg .habit-text {
+	display: none;
+}
+svg #habitSlice {
+	pointer-events: fill;
+}
+svg #habitSlice:hover + .habit-text {
+	display: initial;
+}
