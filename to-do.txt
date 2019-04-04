@@ -1,4 +1,6 @@
 - Habit viewer
+	- Add editable list below, instead of hover stuff
+	- Maybe include states in the viewer circle hover
 - Focus date selection
 - Habit toggling for date
 - Habit creation / removal
