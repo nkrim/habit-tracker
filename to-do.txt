@@ -1,10 +1,12 @@
 - Habit viewer
-	- Add editable list below, instead of hover stuff
-	- Maybe include states in the viewer circle hover
-- Focus date selection
-- Habit toggling for date
+	- Make list editable
+	- Adjust view-circle hovering postions
+	- Get statistics (once statistics are ready)
+- Date checklist on focus (and on day change / first load)
 - Habit creation / removal
-- Calendar month shifting
 
 - BG Visuals
+	- More image options
+	- BG style selection
+	- WebGL variants
 - Habit statistics
