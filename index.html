@@ -481,6 +481,7 @@
 				this.habit_tracker = habit_tracker;
 				let now = new Date(Date.now());
 				this.date = now.getDate();
+				this.focus_date = this.date;
 				this.month = now.getMonth();
 				this.year = now.getFullYear();
 			}
@@ -488,7 +489,7 @@
 			/* VIEW CHANGES
 			--------------- */
 			shift_month_forward() {
-				if(this.month == 11) {
+				if(this.month === 11) {
 					this.month = 0;
 					this.year += 1;
 				}
@@ -497,15 +498,17 @@
 				}
 				// If returning to current month, set date to today, otherwise set to null
 				let now = new Date(Date.now());
-				if(now.getMonth() == this.month)
+				if(now.getMonth() === this.month)
 					this.date = now.getDate();
 				else
 					this.date = null;
-				// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+				// Set focus date to current date
+				this.focus_date = this.date;
 				// REFRESH CALENDAR VIEW
+				$(document).trigger('calendar:refresh');
 			}
 			shift_month_backward() {
-				if(this.month == 0) {
+				if(this.month === 0) {
 					this.month = 11;
 					this.year -= 1;
 				}
@@ -514,12 +517,14 @@
 				}
 				// If returning to current month, set date to today, otherwise set to null
 				let now = new Date(Date.now());
-				if(now.getMonth() == this.month)
+				if(now.getMonth() === this.month)
 					this.date = now.getDate();
 				else
 					this.date = null;
-				// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+				// Set focus date to current date
+				this.focus_date = this.date;
 				// REFRESH CALENDAR VIEW
+				$(document).trigger('calendar:refresh');
 			}
 
 			/* RENDERING
@@ -528,10 +533,22 @@
 				// CONSTANTS
 				let date_radius = 40;
 				let date_padding = 16;
-				let focus_radius = 45;
+				let today_radius = 45;
+				let focus_radius = 50;
+
+				let header_dy = 20;
+				let header_height = 60;
+				let half_header_height = header_height/2;
+				let header_width = 7*2*date_radius + 6*2*date_padding; // Width of calendar dates
+				let header_padding = 6;
+				let header_corner_radius = 20;
+				let header_month_shift_radius = 16;
 
 				let alpha = 0.8;
+				let background_color = 'rgba(255,255,255,0.25)';
 				let stroke_and_text = '#888';
+				let light_stroke = '#aaa';
+				let focus_stroke_and_text = '#444'
 				// ---------
 
 				// Get day of the week for first of the month
@@ -544,7 +561,40 @@
 				let year_entry = this.habit_tracker.tracker[this.year];
 
 				// Start generating
-				gen.new_layer(null, 0, 0, {'style': `opacity: ${alpha};`});
+				gen.new_layer(null, 0, 0, {'style': 'pointer-events: none;'});
+
+				// Generate month header
+				gen.new_layer(null, 0, -(header_height + header_dy));
+				// Header background scrim
+				// gen.add_rect(null, 0, 0, header_width, header_height, 
+				// 	{'fill': background_color, 'rx': header_corner_radius, 'ry': header_corner_radius});
+				// Get month name and add it
+				let temp_date_obj = new Date(this.year, this.month);
+				let month_name = temp_date_obj.toLocaleString('en-us', { month: 'long' });
+				gen.add_text('monthHeader', header_width/2, half_header_height, `${month_name} ${this.year.toString().substr(2)}`, 
+					{'fill': stroke_and_text, 'text-anchor': 'middle', 'alignment-baseline': 'central'});
+				// Month shifting buttons
+				let button_size = header_height - 2*header_padding;
+				// Left shift
+				let month_left_shift = gen.add_rect(null, header_padding, header_padding, button_size, button_size, 
+					{'class': 'hover-show', 'rx': header_month_shift_radius, 'ry': header_month_shift_radius, 'fill': background_color, 'style': 'cursor: pointer;'});
+				gen.add_text('monthShift', header_padding+(button_size/2)-1, half_header_height, '<', 
+					{'fill': stroke_and_text, 'text-anchor': 'middle', 'alignment-baseline': 'central'});
+				// Right shift
+				let month_right_shift = gen.add_rect(null, header_width-header_padding-button_size, header_padding, button_size, button_size, 
+					{'class': 'hover-show', 'rx': header_month_shift_radius, 'ry': header_month_shift_radius, 'fill': background_color, 'style': 'cursor: pointer;'});
+				gen.add_text('monthShift', header_width-(header_padding+(button_size/2))+1, half_header_height, '>', 
+					{'fill': stroke_and_text, 'text-anchor': 'middle', 'alignment-baseline': 'central'});
+				gen.end_layer();
+				// Month handlers
+				$(month_left_shift).click((function() {
+					this.shift_month_backward();
+				}).bind(this));
+				$(month_right_shift).click((function() {
+					this.shift_month_forward();
+				}).bind(this));
+
+				// Generate date circles
 				let cur_date = 1;
 				for(let i = 0; i<num_rows; i += 1) {
 					let row_center = date_radius + 2*i*(date_radius + date_padding);
@@ -552,7 +602,16 @@
 					let j = i === 0 ? first_day : 0;
 					while(j<7 && cur_date <= num_days) {
 						let xc = date_radius + 2*j*(date_radius + date_padding);
-						gen.new_layer(`day${cur_date}`, xc, 0, {'class':'date-circle'});
+						// Date layer
+						let date_g = gen.new_layer(`day${cur_date}`, xc, 0, 
+							{'class':'date-circle', 'style': `opacity: ${cur_date === this.focus_date ? 1 : alpha};`});
+
+							// Get proper stroke_and_text
+							let cur_stroke_and_text = cur_date === this.focus_date ? focus_stroke_and_text : stroke_and_text;
+
+							// Background circle
+							gen.add_circle(null, 0, 0, date_radius, 
+								{'fill': background_color, 'stroke': 'transparent'});
 
 							// Determine slices to show from habit tracker
 							if(year_entry && this.habit_tracker.num_habits) {
@@ -568,16 +627,34 @@
 								}
 							}
 
-							// If is focused date, add an extra embelishing circle
+							// If is today's date, add an extra embelishing circle
 							if(cur_date === this.date) {
+								gen.add_circle(null, 0, 0, today_radius, 
+									{'stroke': cur_stroke_and_text, 'stroke-width': 1});
+							} 
+							// If is focus date, add an extra embelishing circle
+							if(cur_date === this.focus_date) {
 								gen.add_circle(null, 0, 0, focus_radius, 
-									{'stroke': stroke_and_text, 'stroke-width': 1});
+									{'stroke': cur_stroke_and_text, 'stroke-width': 1});
 							} 
 							// Draw circle and text
 							gen.add_circle(null, 0, 0, date_radius, 
-								{'stroke': stroke_and_text, 'stroke-width': 1});
-							gen.add_text(null, 0, 0, cur_date, {'fill': stroke_and_text, 'text-anchor': 'middle', 'alignment-baseline': 'central'})
+								{'stroke': cur_stroke_and_text, 'stroke-width': 1});
+							gen.add_text(null, 0, 0, cur_date, {'fill': cur_stroke_and_text, 'text-anchor': 'middle', 'alignment-baseline': 'central'})
 						gen.end_layer();
+
+						// Add click handler for date
+						(function(date) {
+							$(date_g).click((function(e) {
+								// Always stop click propogation
+								e.stopPropagation();
+								// Change focus
+								this.focus_date = date;
+								console.log(this.focus_date);
+								// Refresh calendar
+								$(document).trigger('calendar:refresh');
+							}).bind(this));
+						}).bind(this)(cur_date);
 
 						j += 1;
 						cur_date += 1;
@@ -632,8 +709,13 @@
 							'fill': 'transparent',
 						};
 						gen.add_elem('path', line_attrs);
+						// Redundant line-end circle for overlapping
+						gen.add_circle(null, slice_point_x, slice_point_y, habit_focus_circle_radius, 
+							{'fill': habit.color, 'stroke': stroke_and_text, 'stroke-width': 1});
+						// End layer
 						gen.end_layer();
-						// Generate small circle for end of line
+
+						// Generate small circle for end of line (always showing)
 						gen.add_circle(null, slice_point_x, slice_point_y, habit_focus_circle_radius, 
 							{'fill': habit.color, 'stroke': stroke_and_text, 'stroke-width': 1});
 
@@ -668,7 +750,7 @@
 
 				let alpha = 0.8;
 				let stroke_and_text = '#888';
-				let light_stroke = '#ddd';
+				let light_stroke = '#bbb';
 				// ---------
 
 				// Main group layer
@@ -693,7 +775,7 @@
 						{'fill': stroke_and_text, 'alignment-baseline': 'central'});
 					// Button rect
 					gen.add_rect(null, 0, 0, list_width, entry_height, 
-						{'class': 'stroke-hover', 'fill': 'transparent', 'stroke': stroke_and_text, 'rx': entry_border_radius, 'ry': entry_border_radius, 'style': 'cursor: pointer;'});
+						{'class': 'hover-show', 'fill': 'transparent', 'stroke': stroke_and_text, 'rx': entry_border_radius, 'ry': entry_border_radius, 'style': 'cursor: pointer;'});
 					// End layer
 					gen.end_layer();
 
@@ -727,38 +809,88 @@
 
 	<!-- Main -->
 	<script type="text/javascript">
+		class Main {
+			/* Constructor
+			-------------- */
+			constructor() {
+				this.habit_tracker = new HabitTracker();
+				this.calendar = new Calendar(this.habit_tracker);
+			}
+
+			load() {
+				this.habit_tracker.load_from_cookies();
+			}
+			save() {
+				this.habit_tracker.save_to_cookies();
+			}
+
+			generate_site() {
+				// Timing 
+				let time_start = Date.now();
+
+				let gen = new SvgGenerator('calendar', 1050, 800);
+
+				gen.new_layer(null, 10, 120);
+					this.calendar.generate_calendar(gen);
+					gen.end_layer();
+				gen.new_layer(null, 800, 120);
+					this.calendar.generate_habit_viewer(gen);
+					gen.new_layer(null, 0, 100);
+						this.calendar.generate_habit_list(gen);
+				gen.flush();
+
+				let container = $('#calendarContainer');
+				// Get old calendar svg if it exists
+				let old_calendar = $('#calendar');
+				// Append new calendar
+				container.append(gen.svg);
+				// Delete old calendar if it exists
+				if(old_calendar.length > 0) {
+					old_calendar.remove();
+				}
+
+				// Set calendar handlers
+
+				// Timing
+				let time_end = Date.now();
+				let time_to_process = (time_end - time_start)/1000;
+				console.log(`Calendar rendered in: ${time_to_process}s`);
+				console.log(this.calendar.month);
+			}
+
+			initiate_handlers() {
+				/*// Focus resetting for container clicks (REMEMBER TO STOP PROPOGATION ON CLICK HANDLERS)
+				$('#calendarContainer').click((function() {
+					console.log('pee');
+					// Reset focus_date
+					this.calendar.focus_date = null;
+					// Refresh calendar
+					this.generate_site();
+				}).bind(this));*/
+
+
+				// Refresh event
+				$(document).on('calendar:refresh', (function() {
+					this.generate_site();
+				}).bind(this)); // Bind to this
+			}
+
+			/* TEMPORARY */
+			set_test_habits() {
+				this.habit_tracker.add_habit('Wake Up', '#bae1ff');
+				this.habit_tracker.add_habit('Work', '#baffc9');
+				this.habit_tracker.add_habit('Pee', '#ffffba');
+				this.habit_tracker.add_tracked_habit(2019, 3, 21, 1);
+				this.habit_tracker.add_tracked_habit(2019, 3, 21, 0);
+			}
+		}
+
 		$(document).ready(function() {
-			let time_start = Date.now();
+			let main = new Main();
 
-			let gen = new SvgGenerator('calendar', 1200, 800);
-
-			let habit_tracker = new HabitTracker();
-			let calendar = new Calendar(habit_tracker);
-
-			habit_tracker.add_habit('Brushing', '#bae1ff');
-			habit_tracker.add_habit('Work', '#ffffba');
-			habit_tracker.add_habit('Pee', '#baffc9');
-			habit_tracker.add_tracked_habit(2019, 3, 21, 1);
-			habit_tracker.add_tracked_habit(2019, 3, 21, 0);
-
-			// habit_tracker.load_from_cookies();
-			// habit_tracker.save_to_cookies();
-
-			gen.new_layer(null, 10, 140);
-				calendar.generate_calendar(gen);
-				gen.end_layer();
-			gen.new_layer(null, 800, 140);
-				calendar.generate_habit_viewer(gen);
-				gen.new_layer(null, 0, 100);
-					calendar.generate_habit_list(gen);
-			gen.flush();
-
-			let container = $('#calendarContainer');
-			container.append(gen.svg);
-
-			let time_end = Date.now();
-			let time_to_process = (time_end - time_start)/1000;
-			console.log(`Calendar rendered in: ${time_to_process}s`);
+			main.initiate_handlers();
+			main.set_test_habits(); // TESTING
+			main.generate_site();
 		});
 	</script>
 </body>

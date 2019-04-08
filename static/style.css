@@ -1,14 +1,61 @@
+html, body {
+	margin: 0;
+	width: 100vw;
+}
+
+#calendarContainer {
+	position: relative;
+	width: 100%;
+	height: 100vh;
+
+	/* TEMPORARY BACKGROUND */
+	background: #fff;
+	background-image: url('/static/img/earth-porn-1.jpg');
+	background-position: center bottom;
+	background-attachment: fixed;
+	background-size: cover;
+}
+
+#calendar {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto;
+}
+
+
+
 /* SVG GENERAL CLASSES
 ====================== */
-svg .stroke-hover:not(:hover) {
-	stroke: transparent;
+svg .hover-show {
+	pointer-events: fill;
+}
+svg .hover-show:not(:hover) {
+	opacity: 0;
 }
 /* =================== */
+
 
 
 svg text {
 	font-family: "Courier New", Courier, monospace;
 	font-size: 24px;
+}
+
+/* CALENDAR
+----------- */
+svg #monthHeader {
+	font-size: 52px;
+}
+svg #monthShift {
+	font-size: 48px;
+}
+
+svg .date-circle {
+	pointer-events: fill;
+	cursor: pointer;
 }
 
 /* HABIT VIEWER 
