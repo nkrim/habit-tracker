@@ -201,53 +201,21 @@
 				if(theta >= 2*Math.PI) {
 					return this.add_circle(id, cx, cy, r, other_attrs);
 				}
-				// 3/4 circle case
-				if(theta >= 1.5*Math.PI) {
-					let g = this.new_layer(id, 0, 0, other_attrs);
-					let quarter_circle = Math.PI/2;
-					this.add_slice(null, cx, cy, r, start_angle, quarter_circle, other_attrs);
-					start_angle += quarter_circle;
-					this.add_slice(null, cx, cy, r, start_angle, quarter_circle, other_attrs);
-					start_angle += quarter_circle;
-					this.add_slice(null, cx, cy, r, start_angle, theta - Math.PI, other_attrs);
-					this.end_layer();
-					return g;
-				}
-				// 1/2 circle case
-				if(theta >= Math.PI) {
-					let g = this.new_layer(id, 0, 0, other_attrs);
-					let quarter_circle = Math.PI/2;
-					this.add_slice(null, cx, cy, r, start_angle, quarter_circle, other_attrs);
-					this.add_slice(null, cx, cy, r, start_angle+quarter_circle, theta - quarter_circle, other_attrs);
-					this.end_layer();
-					return g;
-				}
 
-				// Adjust points for context
+				// Slice case (using arc)
 				cx += this._context.x;
 				cy += this._context.y;
 				// Get the start and end points for the arc
 				let x1 = cx + r*Math.sin(start_angle);
 				let y1 = cy - r*Math.cos(start_angle);
-				let x4 = cx + r*Math.sin(start_angle + theta);
-				let y4 = cy - r*Math.cos(start_angle + theta);
+				let x2 = cx + r*Math.sin(start_angle + theta);
+				let y2 = cy - r*Math.cos(start_angle + theta);
 
-				// Compute control points for bezier (math by @k88lawrence from https://stackoverflow.com/questions/734076/how-to-best-approximate-a-geometrical-arc-with-a-bezier-curve)
-				let ax = x1 - cx;
-				let ay = y1 - cy;
-				let bx = x4 - cx;
-				let by = y4 - cy;
-				let q1 = ax * ax + ay * ay;
-				let q2 = q1 + ax * bx + ay * by;
-				let k2 = (4/3) * (Math.sqrt(2 * q1 * q2) - q2) / (ax * by - ay * bx);
-
-				let x2 = cx + ax - k2 * ay;
-				let y2 = cy + ay + k2 * ax;
-				let x3 = cx + bx + k2 * by;
-				let y3 = cy + by - k2 * bx;
+				let large_arc = theta > Math.PI ? 1 : 0; // Determines whether to take the larger arc, only 1 when theta > 180
+				let sweep = 1; // Determines the direction around the circle to travel, always 1
 
 				// Create path for slice
-				let slice_path = `M ${cx} ${cy} L ${x1} ${y1} C ${x2} ${y2}, ${x3} ${y3}, ${x4} ${y4} Z`;
+				let slice_path = `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large_arc} ${sweep} ${x2} ${y2} Z`;
 				// Consctruct element
 				let attrs = {
 					'id': id, 
@@ -703,7 +671,7 @@
 			habit_tracker.add_habit('Brushing', 'Cyan');
 			habit_tracker.add_habit('Work', 'Orange');
 			habit_tracker.add_habit('Pee', 'Yellow');
-			habit_tracker.add_tracked_habit(2019, 3, 21, 1);
+			// habit_tracker.add_tracked_habit(2019, 3, 21, 1);
 			habit_tracker.add_tracked_habit(2019, 3, 21, 0);
 
 			// habit_tracker.load_from_cookies();
