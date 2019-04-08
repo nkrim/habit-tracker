@@ -48,6 +48,7 @@ svg text {
 ----------- */
 svg #monthHeader {
 	font-size: 52px;
+	pointer-events: all;
 }
 svg #monthShift {
 	font-size: 48px;

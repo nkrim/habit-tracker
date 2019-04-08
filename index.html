@@ -268,8 +268,8 @@
 	<script type="text/javascript">
 		/* CONSTANTS
 		------------ */
-		let max_habits = 16;
-		let max_years = 10;
+		const max_habits = 16;
+		const max_years = 10;
 
 		class HabitTracker {
 			/* CONSTRUCTOR
@@ -531,24 +531,24 @@
 			------------ */
 			generate_calendar(gen) {
 				// CONSTANTS
-				let date_radius = 40;
-				let date_padding = 16;
-				let today_radius = 45;
-				let focus_radius = 50;
+				const date_radius = 40;
+				const date_padding = 16;
+				const today_radius = 45;
+				const focus_radius = 50;
 
-				let header_dy = 20;
-				let header_height = 60;
-				let half_header_height = header_height/2;
-				let header_width = 7*2*date_radius + 6*2*date_padding; // Width of calendar dates
-				let header_padding = 6;
-				let header_corner_radius = 20;
-				let header_month_shift_radius = 16;
+				const header_dy = 20;
+				const header_height = 60;
+				const half_header_height = header_height/2;
+				const header_width = 7*2*date_radius + 6*2*date_padding; // Width of calendar dates
+				const header_padding = 6;
+				const header_corner_radius = 20;
+				const header_month_shift_radius = 16;
 
-				let alpha = 0.8;
-				let background_color = 'rgba(255,255,255,0.25)';
-				let stroke_and_text = '#888';
-				let light_stroke = '#aaa';
-				let focus_stroke_and_text = '#444'
+				const alpha = 0.8;
+				const background_color = 'rgba(255,255,255,0.25)';
+				const stroke_and_text = '#888';
+				const light_stroke = '#aaa';
+				const focus_stroke_and_text = '#444'
 				// ---------
 
 				// Get day of the week for first of the month
@@ -586,7 +586,8 @@
 				gen.add_text('monthShift', header_width-(header_padding+(button_size/2))+1, half_header_height, '>', 
 					{'fill': stroke_and_text, 'text-anchor': 'middle', 'alignment-baseline': 'central'});
 				gen.end_layer();
-				// Month handlers
+
+				// Month shift button handlers
 				$(month_left_shift).click((function() {
 					this.shift_month_backward();
 				}).bind(this));
@@ -666,17 +667,17 @@
 
 			generate_habit_viewer(gen) {
 				// CONSTANTS
-				let viewer_radius = 80;
-				let habit_text_x = -130;
-				let habit_text_y = -80;
-				let habit_text_x_padding = 6;
-				let habit_text_length = 140;
-				let habit_text_underline_padding = 10;
-				let habit_focus_circle_radius = 4;
-				let habit_focus_circle_radius_coeff = 0.65;
+				const viewer_radius = 80;
+				const habit_text_x = -130;
+				const habit_text_y = -80;
+				const habit_text_x_padding = 6;
+				const habit_text_length = 140;
+				const habit_text_underline_padding = 10;
+				const habit_focus_circle_radius = 4;
+				const habit_focus_circle_radius_coeff = 0.65;
 
-				let alpha = 0.8;
-				let stroke_and_text = '#888';
+				const alpha = 0.8;
+				const stroke_and_text = '#888';
 				// ---------
 
 				gen.new_layer(null, viewer_radius, 0, {'style': `opacity: ${alpha}; pointer-events: none;`});
@@ -738,19 +739,19 @@
 
 			generate_habit_list(gen) {
 				// CONSTANTS
-				let list_width = 240;
-				let header_height = 10;
-				let header_underline_padding = 8;
+				const list_width = 240;
+				const header_height = 10;
+				const header_underline_padding = 8;
 
-				let entry_height = 24;
-				let half_entry_height = entry_height/2;
-				let entry_margin = 6;
-				let entry_padding = 6;
-				let entry_border_radius = 4;
+				const entry_height = 24;
+				const half_entry_height = entry_height/2;
+				const entry_margin = 6;
+				const entry_padding = 6;
+				const entry_border_radius = 4;
 
-				let alpha = 0.8;
-				let stroke_and_text = '#888';
-				let light_stroke = '#bbb';
+				const alpha = 0.8;
+				const stroke_and_text = '#888';
+				const light_stroke = '#bbb';
 				// ---------
 
 				// Main group layer
@@ -855,7 +856,6 @@
 				let time_end = Date.now();
 				let time_to_process = (time_end - time_start)/1000;
 				console.log(`Calendar rendered in: ${time_to_process}s`);
-				console.log(this.calendar.month);
 			}
 
 			initiate_handlers() {
