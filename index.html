@@ -183,6 +183,19 @@
 				return this.add_elem('circle', attrs);
 			}
 
+			add_rect(id, x, y, width, height, other_attrs) {
+				let attrs = {
+					'id': id,
+					'x': x + this._context.x,
+					'y': y + this._context.y,
+					'width': width,
+					'height': height,
+				};
+				if(other_attrs)
+					Object.assign(attrs, other_attrs);
+				return this.add_elem('rect', attrs);
+			}
+
 			add_line(id, x1, y1, x2, y2, other_attrs) {
 				let attrs = {
 					'id': id,
@@ -517,7 +530,7 @@
 				let date_padding = 16;
 				let focus_radius = 45;
 
-				let alpha = 0.7;
+				let alpha = 0.8;
 				let stroke_and_text = '#888';
 				// ---------
 
@@ -576,8 +589,8 @@
 
 			generate_habit_viewer(gen) {
 				// CONSTANTS
-				let viewer_radius = 60;
-				let habit_text_x = -80;
+				let viewer_radius = 80;
+				let habit_text_x = -130;
 				let habit_text_y = -80;
 				let habit_text_x_padding = 6;
 				let habit_text_length = 140;
@@ -585,11 +598,11 @@
 				let habit_focus_circle_radius = 4;
 				let habit_focus_circle_radius_coeff = 0.65;
 
-				let alpha = 0.7;
+				let alpha = 0.8;
 				let stroke_and_text = '#888';
 				// ---------
 
-				gen.new_layer(null, 0, 0, {'style': `opacity: ${alpha}; pointer-events: none;`});
+				gen.new_layer(null, viewer_radius, 0, {'style': `opacity: ${alpha}; pointer-events: none;`});
 				// Generate slices and habit text and line
 				if(this.habit_tracker.num_habits) {
 					let slice_theta = 2*Math.PI/this.habit_tracker.num_habits;
@@ -606,18 +619,23 @@
 							{'text-anchor': 'end', 'fill': stroke_and_text});
 						// Generate line under text
 						let slice_point_angle = (k*slice_theta) + (slice_theta/2);
-						let slice_point_x = habit_focus_circle_radius_coeff*viewer_radius*Math.sin(slice_point_angle);
-						let slice_point_y = -habit_focus_circle_radius_coeff*viewer_radius*Math.cos(slice_point_angle);
+						let slice_point_x = 0;
+						let slice_point_y = 0;
+						// If not full circle, calculate real slice point
+						if(this.habit_tracker.num_habits > 1) {
+							slice_point_x = habit_focus_circle_radius_coeff*viewer_radius*Math.sin(slice_point_angle);
+							slice_point_y = -habit_focus_circle_radius_coeff*viewer_radius*Math.cos(slice_point_angle);
+						}
 						let line_attrs = {
 							'd': `M ${habit_text_x + habit_text_x_padding + gen._context.x - habit_text_length} ${habit_text_y + gen._context.y + habit_text_underline_padding} l ${habit_text_length} 0 L ${slice_point_x + gen._context.x} ${slice_point_y + gen._context.y}`,
 							'stroke': stroke_and_text,
 							'fill': 'transparent',
 						};
 						gen.add_elem('path', line_attrs);
+						gen.end_layer();
 						// Generate small circle for end of line
 						gen.add_circle(null, slice_point_x, slice_point_y, habit_focus_circle_radius, 
 							{'fill': habit.color, 'stroke': stroke_and_text, 'stroke-width': 1});
-						gen.end_layer();
 
 						// End layer
 						gen.end_layer();
@@ -626,7 +644,7 @@
 
 				// Draw circle
 				gen.add_circle(null, 0, 0, viewer_radius, 
-					{'fill': 'transparent', 'stroke': stroke_and_text, 'stroke-width': 2});
+					{'fill': 'transparent', 'stroke': stroke_and_text, 'stroke-width': 1});
 
 				// Generate use tags for habitText
 				for(let k=0; k<this.habit_tracker.num_habits-1; k+=1) {
@@ -634,6 +652,75 @@
 				}
 
 				gen.end_layer();
+			}
+
+			generate_habit_list(gen) {
+				// CONSTANTS
+				let list_width = 240;
+				let header_height = 10;
+				let header_underline_padding = 8;
+
+				let entry_height = 24;
+				let half_entry_height = entry_height/2;
+				let entry_margin = 6;
+				let entry_padding = 6;
+				let entry_border_radius = 4;
+
+				let alpha = 0.8;
+				let stroke_and_text = '#888';
+				let light_stroke = '#ddd';
+				// ---------
+
+				// Main group layer
+				gen.new_layer(null, 0, 0, {'style': `opacity: ${alpha};`});
+
+				// Header
+				gen.add_text('habitListHeader', 0, header_height, 'Habits', 
+					{'fill': stroke_and_text, 'alignment-baseline': 'bottom'});
+				gen.add_line(null, 0, header_height + header_underline_padding, list_width, header_height + header_underline_padding, 
+					{'stroke': stroke_and_text, 'stroke-width': 1});
+
+				// List layer
+				gen.new_layer('habitList', 0, header_height + header_underline_padding + entry_margin);
+				let current_y = 0;
+
+				// Add habit button 
+				if(this.habit_tracker.num_habits < max_habits) {
+					// New layer
+					gen.new_layer(null, 0, 0);
+					// Add habit text
+					gen.add_text(null, entry_padding, half_entry_height, '+ Add Habit', 
+						{'fill': stroke_and_text, 'alignment-baseline': 'central'});
+					// Button rect
+					gen.add_rect(null, 0, 0, list_width, entry_height, 
+						{'class': 'stroke-hover', 'fill': 'transparent', 'stroke': stroke_and_text, 'rx': entry_border_radius, 'ry': entry_border_radius, 'style': 'cursor: pointer;'});
+					// End layer
+					gen.end_layer();
+
+					// Increment current_y
+					current_y += entry_height + entry_margin;
+				}
+
+				// Habits
+				for(let k=0; k<this.habit_tracker.num_habits; k+=1) {
+					let habit = this.habit_tracker.habits[k];
+					// New layer
+					gen.new_layer(null, 0, current_y);
+					// Underline
+					gen.add_line(null, entry_border_radius, entry_height, list_width, entry_height, 
+						{'stroke': light_stroke});
+					// Color rect
+					gen.add_rect(null, 0, 0, entry_height, entry_height, 
+						{'fill': habit.color, 'stroke': stroke_and_text, 'rx': entry_border_radius, 'ry': entry_border_radius,});
+					// Habit name
+					gen.add_text(null, entry_height + entry_padding, half_entry_height, habit.name,
+						{'fill': stroke_and_text, 'alignment-baseline': 'central'});
+					// End layer
+					gen.end_layer();
+
+					// Increment current_y
+					current_y += entry_height + entry_margin;
+				}
 			}
 		}
 	</script>
@@ -645,33 +732,13 @@
 
 			let gen = new SvgGenerator('calendar', 1200, 800);
 
-			/*gen.new_layer('dates', 100, 100, {
-				'fill': 'transparent', 
-				'stroke': '#000',
-				'stroke-width': 2,
-			});
-				gen.add_circle(null, 50, 50, 40);
-				gen.new_layer(null, 50, 50);
-					gen.add_circle(null, 0, 0, 20);
-					gen.end_layer();
-				gen.new_layer(null, 80, 80);
-					gen.new_layer(null, 0, 0, {'stroke': 'transparent'})
-						gen.add_slice(null, 0, 0, 99.5, 0, Math.PI*2/3, {'fill': 'cyan'});
-						gen.add_slice(null, 0, 0, 99.5, Math.PI*2/3, Math.PI*2/3, {'fill': 'orange'});
-						gen.add_slice(null, 0, 0, 99.5, Math.PI*4/3, Math.PI*2/3, {'fill': 'green'});
-						gen.end_layer();
-					gen.add_circle(null, 0, 0, 100);
-					gen.add_circle(null, 0, 0, 24, {'fill': 'white', 'stroke': 'transparent'});
-					gen.add_text(null, 0, 0, '01', {'fill': 'black', 'stroke-width': 0, 'text-anchor': 'middle', 'alignment-baseline': 'central'});
-			gen.flush();*/
-
 			let habit_tracker = new HabitTracker();
 			let calendar = new Calendar(habit_tracker);
 
-			habit_tracker.add_habit('Brushing', 'Cyan');
-			habit_tracker.add_habit('Work', 'Orange');
-			habit_tracker.add_habit('Pee', 'Yellow');
-			// habit_tracker.add_tracked_habit(2019, 3, 21, 1);
+			habit_tracker.add_habit('Brushing', '#bae1ff');
+			habit_tracker.add_habit('Work', '#ffffba');
+			habit_tracker.add_habit('Pee', '#baffc9');
+			habit_tracker.add_tracked_habit(2019, 3, 21, 1);
 			habit_tracker.add_tracked_habit(2019, 3, 21, 0);
 
 			// habit_tracker.load_from_cookies();
@@ -680,8 +747,10 @@
 			gen.new_layer(null, 10, 140);
 				calendar.generate_calendar(gen);
 				gen.end_layer();
-			gen.new_layer(null, 860, 140);
+			gen.new_layer(null, 800, 140);
 				calendar.generate_habit_viewer(gen);
+				gen.new_layer(null, 0, 100);
+					calendar.generate_habit_list(gen);
 			gen.flush();
 
 			let container = $('#calendarContainer');

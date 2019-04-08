@@ -1,8 +1,18 @@
+/* SVG GENERAL CLASSES
+====================== */
+svg .stroke-hover:not(:hover) {
+	stroke: transparent;
+}
+/* =================== */
+
+
 svg text {
 	font-family: "Courier New", Courier, monospace;
 	font-size: 24px;
 }
 
+/* HABIT VIEWER 
+--------------- */
 svg .habit-text {
 	display: none;
 }
@@ -11,4 +21,15 @@ svg #habitSlice {
 }
 svg #habitSlice:hover + .habit-text {
 	display: initial;
+}
+
+
+/* HABIT LIST
+------------- */
+svg #habitListHeader {
+	font-size: 28px;
+}
+
+svg #habitList text {
+	font-size: 18px;
 }
