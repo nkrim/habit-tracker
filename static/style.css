@@ -1,83 +1,225 @@
+/* VARIABLES
+------------ */
+/* --------- */
 html, body {
-	margin: 0;
-	width: 100vw;
+  margin: 0;
+  width: 100vw;
 }
 
 #calendarContainer {
-	position: relative;
-	width: 100%;
-	height: 100vh;
-
-	/* TEMPORARY BACKGROUND */
-	background: #fff;
-	background-image: url('/static/img/earth-porn-1.jpg');
-	background-position: center bottom;
-	background-attachment: fixed;
-	background-size: cover;
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  /* TEMPORARY BACKGROUND */
+  background: #fff;
+  background-image: url("./img/earth-porn-1.jpg");
+  background-position: center bottom;
+  background-attachment: fixed;
+  background-size: cover;
 }
 
 #calendar {
-	position: absolute;
-	top: 0;
-	left: 0;
-	right: 0;
-	bottom: 0;
-	margin: auto;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  margin: auto;
 }
 
-
+/* POPUP STYLING
+================ */
+#popup {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  bottom: 0;
+  z-index: 10;
+}
+#popup .popup-content {
+  position: relative;
+  top: 20%;
+  left: -50%;
+  padding: 20px 30px;
+  box-sizing: border-box;
+  border: 1px solid #888;
+  border-radius: 20px;
+  background: white;
+}
+#popup .popup-content.checklist-popup {
+  font-family: "Courier New", Courier, monospace;
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+}
+#popup .popup-content.checklist-popup .checklist-greeting {
+  color: #444;
+  text-align: center;
+  font-size: 18px;
+}
+#popup .popup-content.checklist-popup .checklist-date {
+  color: #444;
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  padding: 4px 30px 10px;
+}
+#popup .popup-content.checklist-popup .checklist-line {
+  width: 100%;
+  height: 10px;
+  border-top: 1px solid #888;
+}
+#popup .popup-content.checklist-popup .checklist-container {
+  padding: 0 30px;
+}
+#popup .popup-content.checklist-popup .checklist-habit-entry {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  color: #444;
+  font-size: 18px;
+  margin: 8px 0;
+  box-sizing: border-box;
+  border-bottom-left-radius: 10px;
+  border-bottom: 1px solid #bbb;
+  cursor: pointer;
+}
+#popup .popup-content.checklist-popup .checklist-habit-entry.entry-active {
+  font-weight: 700;
+}
+#popup .popup-content.checklist-popup .checklist-habit-entry.entry-active .checklist-checkbox-inner-bg {
+  opacity: 1;
+}
+#popup .popup-content.checklist-popup .checklist-habit-entry:not(.entry-active):hover .checklist-checkbox-inner-bg {
+  opacity: 0.35;
+}
+#popup .popup-content.checklist-popup .checklist-habit-entry .checklist-checkbox {
+  display: inline-block;
+  width: 30px;
+  height: 30px;
+  box-sizing: border-box;
+  border: 1px solid #888;
+  border-radius: 10px;
+}
+#popup .popup-content.checklist-popup .checklist-habit-entry .checklist-checkbox-inner {
+  width: 28px;
+  height: 28px;
+  box-sizing: border-box;
+  border: 4px solid;
+  border-radius: 9px;
+}
+#popup .popup-content.checklist-popup .checklist-habit-entry .checklist-checkbox-inner-bg {
+  width: 20px;
+  height: 20px;
+  opacity: 0;
+}
+#popup .popup-content.checklist-popup .checklist-habit-entry .checklist-habit-name {
+  padding-left: 12px;
+}
 
 /* SVG GENERAL CLASSES
 ====================== */
+svg text.text-vert-central {
+  dominant-baseline: central;
+}
+
 svg .hover-show {
-	pointer-events: fill;
+  pointer-events: fill;
 }
 svg .hover-show:not(:hover) {
-	opacity: 0;
+  opacity: 0;
 }
+
 /* =================== */
-
-
-
 svg text {
-	font-family: "Courier New", Courier, monospace;
-	font-size: 24px;
+  font-family: "Courier New", Courier, monospace;
+  font-size: 24px;
+}
+
+svg text:not(.selectable) {
+  -webkit-touch-callout: none;
+  /* iOS Safari */
+  -webkit-user-select: none;
+  /* Safari */
+  -khtml-user-select: none;
+  /* Konqueror HTML */
+  -moz-user-select: none;
+  /* Firefox */
+  -ms-user-select: none;
+  /* Internet Explorer/Edge */
+  user-select: none;
+  /* Non-prefixed version, currently supported by Chrome and Opera */
 }
 
 /* CALENDAR
 ----------- */
 svg #monthHeader {
-	font-size: 52px;
-	pointer-events: all;
+  font-size: 52px;
+  pointer-events: all;
 }
+
 svg #monthShift {
-	font-size: 48px;
+  font-size: 48px;
 }
 
 svg .date-circle {
-	pointer-events: fill;
-	cursor: pointer;
+  pointer-events: fill;
+  cursor: pointer;
 }
 
 /* HABIT VIEWER 
 --------------- */
 svg .habit-text {
-	display: none;
-}
-svg #habitSlice {
-	pointer-events: fill;
-}
-svg #habitSlice:hover + .habit-text {
-	display: initial;
+  display: none;
 }
 
+svg #habitSlice {
+  pointer-events: fill;
+}
+
+svg #habitSlice:hover + .habit-text {
+  display: initial;
+}
 
 /* HABIT LIST
 ------------- */
-svg #habitListHeader {
-	font-size: 28px;
+svg #habitListContainer {
+  opacity: 0.8;
+}
+svg #habitListContainer text {
+  fill: #888;
+}
+
+svg #habitListHeader text {
+  font-size: 28px;
+}
+svg #habitListHeader line {
+  stroke: #888;
+}
+
+svg #habitListContainer #addHabitButton text {
+  pointer-events: none;
+}
+svg #habitListContainer #addHabitButton rect {
+  fill: transparent;
+  stroke: #888;
+  stroke-width: 1;
+  cursor: pointer;
+}
+svg #habitListContainer #addHabitButton rect:active {
+  fill: rgba(255, 255, 255, 0.25);
 }
 
 svg #habitList text {
-	font-size: 18px;
+  font-size: 18px;
 }
+svg #habitList .habit-list-entry line {
+  stroke: #bbb;
+  stroke-width: 1;
+}
+svg #habitList .habit-list-entry rect {
+  stroke: #888;
+  stroke-width: 1;
+}
+
+/*# sourceMappingURL=style.css.map */

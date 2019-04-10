@@ -1,0 +1,267 @@
+/* VARIABLES
+------------ */
+$main-gray: #888;
+$light-gray: #bbb;
+$dark-gray: #444;
+
+/* --------- */
+
+html, body {
+	margin: 0;
+	width: 100vw;
+}
+
+#calendarContainer {
+	position: relative;
+	width: 100%;
+	height: 100vh;
+
+	/* TEMPORARY BACKGROUND */
+	background: #fff;
+	background-image: url('./img/earth-porn-1.jpg');
+	background-position: center bottom;
+	background-attachment: fixed;
+	background-size: cover;
+}
+
+#calendar {
+	position: absolute;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	margin: auto;
+}
+
+
+/* POPUP STYLING
+================ */
+#popup {
+	position: absolute;
+	top: 0;
+	left: 50%;
+	bottom: 0;
+
+	z-index: 10;
+
+	.popup-content {
+		position: relative;
+		top: 20%;
+		left: -50%;
+
+		padding: 20px 30px;
+
+		box-sizing: border-box;
+		border: 1px solid $main-gray;
+		border-radius: 20px;
+		background: rgba(255,255,255,1);
+
+		&.checklist-popup {
+			font-family: "Courier New", Courier, monospace;
+
+			display: flex;
+			flex-direction: column;
+			justify-content: start;
+
+			.checklist-greeting {
+				color: $dark-gray;
+				text-align: center;
+				font-size: 18px;
+			}
+
+			.checklist-date {
+				color: $dark-gray;
+				text-align: center;
+				font-size: 24px;
+				font-weight: 700;
+
+				padding: 4px 30px 10px;
+			}
+
+			.checklist-line {
+				width: 100%;
+				height: 10px;
+				border-top: 1px solid $main-gray;
+			}
+
+			.checklist-container {
+				padding: 0 30px;
+			}
+
+			.checklist-habit-entry {
+				display: flex;
+				align-items: center;
+
+				height: 30px;
+
+				color: $dark-gray;
+				font-size: 18px;
+
+				margin: 8px 0;
+
+				box-sizing: border-box;
+				border-bottom-left-radius: 10px;
+				border-bottom: 1px solid $light-gray;
+
+				cursor: pointer;
+
+				&.entry-active {
+					font-weight: 700;
+
+					.checklist-checkbox-inner-bg {
+						opacity: 1;
+					}
+				}
+
+				&:not(.entry-active):hover .checklist-checkbox-inner-bg {
+					opacity: 0.35;
+				}
+
+				.checklist-checkbox {
+					display: inline-block;
+					width: 30px;
+					height: 30px;
+
+					box-sizing: border-box;
+					border: 1px solid $main-gray;
+					border-radius: 10px;					
+				}
+
+				.checklist-checkbox-inner {
+					width: 28px;
+					height: 28px;
+
+					box-sizing: border-box;
+					border: 4px solid;
+					border-radius: 9px;
+				}
+
+				.checklist-checkbox-inner-bg {
+					width: 20px;
+					height: 20px;
+
+					opacity: 0;
+				}
+
+				.checklist-habit-name {
+					padding-left: 12px;
+				}
+			}
+		}
+	}
+}
+
+
+
+
+/* SVG GENERAL CLASSES
+====================== */
+svg text.text-vert-central {
+	dominant-baseline: central;
+}
+
+svg .hover-show {
+	pointer-events: fill;
+	
+	&:not(:hover) {
+		opacity: 0;
+	}
+}
+/* =================== */
+
+
+
+svg text {
+	font-family: "Courier New", Courier, monospace;
+	font-size: 24px;
+}
+svg text:not(.selectable) {
+	-webkit-touch-callout: none; /* iOS Safari */
+		-webkit-user-select: none; /* Safari */
+		 -khtml-user-select: none; /* Konqueror HTML */
+		   -moz-user-select: none; /* Firefox */
+		    -ms-user-select: none; /* Internet Explorer/Edge */
+		        user-select: none; /* Non-prefixed version, currently supported by Chrome and Opera */
+}
+
+/* CALENDAR
+----------- */
+svg #monthHeader {
+	font-size: 52px;
+	pointer-events: all;
+}
+svg #monthShift {
+	font-size: 48px;
+}
+
+svg .date-circle {
+	pointer-events: fill;
+	cursor: pointer;
+}
+
+/* HABIT VIEWER 
+--------------- */
+svg .habit-text {
+	display: none;
+}
+svg #habitSlice {
+	pointer-events: fill;
+}
+svg #habitSlice:hover + .habit-text {
+	display: initial;
+}
+
+
+/* HABIT LIST
+------------- */
+svg #habitListContainer {
+	opacity: 0.8;
+ 
+	text {
+		fill: $main-gray;
+	}
+}
+
+svg #habitListHeader {
+	text {
+		font-size: 28px;
+	}
+
+	line {
+		stroke: $main-gray;
+	}
+}
+
+svg #habitListContainer #addHabitButton {
+	text {
+		pointer-events: none;
+	}
+	
+	rect {
+		fill: transparent;
+		stroke: $main-gray;
+		stroke-width: 1;
+		cursor: pointer;
+
+		&:active {
+			fill: rgba(255,255,255,0.25);
+		}
+	}
+}
+
+svg #habitList {
+	text {
+		font-size: 18px;
+	}
+
+	.habit-list-entry {
+		line {
+			stroke: $light-gray;
+			stroke-width: 1;
+		}
+		rect {
+			stroke: $main-gray;
+			stroke-width: 1;
+		}
+	}
+}
