@@ -8,15 +8,19 @@
 	<meta name="description" content="A calendar for tracking your habits in order to visually see your consistency and progress and encourage dedication.">
 
 	<!-- Style -->
-	<link rel="stylesheet" href="/static/style.css">
+	<link rel="stylesheet" href="./static/style.css">
 
 	<!-- Scripts -->
-	<script src="/static/js/jquery.min.js"></script>
+	<script src="./static/js/jquery.min.js"></script>
 </head>
 <body>
 
 	<div id="calendarContainer">
-		
+		<div id="popup">
+			<div class="popup-content">
+				pee
+			</div>
+		</div>
 	</div>
 
 
@@ -294,6 +298,20 @@
 				return `${month < 10 ? '0'+month : month}-${date < 10 ? '0'+date : date}`;
 			} 
 
+			/* Accessors
+			------------ */
+			get_date_entry(date_obj) {
+				let year_entry = this.tracker[date_obj.getFullYear()];
+				if(year_entry === undefined)
+					return null;
+
+				let date_key = HabitTracker.get_date_key(date_obj.getMonth(), date_obj.getDate());
+				let date_entry = year_entry[date_key];
+				if(date_entry === undefined)
+					return null;
+				return date_entry;
+			}
+
 			/* Modifiers
 			------------ */
 			add_habit(name, color) {
@@ -486,6 +504,14 @@
 				this.year = now.getFullYear();
 			}
 
+			/* GETTERS
+			---------- */
+			get date_obj() {
+				if(this.focus_date === null)
+					return null;
+				return new Date(this.year, this.month, this.focus_date);
+			}
+
 			/* VIEW CHANGES
 			--------------- */
 			shift_month_forward() {
@@ -572,19 +598,19 @@
 				let temp_date_obj = new Date(this.year, this.month);
 				let month_name = temp_date_obj.toLocaleString('en-us', { month: 'long' });
 				gen.add_text('monthHeader', header_width/2, half_header_height, `${month_name} ${this.year.toString().substr(2)}`, 
-					{'fill': stroke_and_text, 'text-anchor': 'middle', 'alignment-baseline': 'central'});
+					{'class': 'text-vert-central', 'fill': stroke_and_text, 'text-anchor': 'middle',});
 				// Month shifting buttons
 				let button_size = header_height - 2*header_padding;
 				// Left shift
 				let month_left_shift = gen.add_rect(null, header_padding, header_padding, button_size, button_size, 
 					{'class': 'hover-show', 'rx': header_month_shift_radius, 'ry': header_month_shift_radius, 'fill': background_color, 'style': 'cursor: pointer;'});
 				gen.add_text('monthShift', header_padding+(button_size/2)-1, half_header_height, '<', 
-					{'fill': stroke_and_text, 'text-anchor': 'middle', 'alignment-baseline': 'central'});
+					{'class': 'text-vert-central', 'fill': stroke_and_text, 'text-anchor': 'middle',});
 				// Right shift
 				let month_right_shift = gen.add_rect(null, header_width-header_padding-button_size, header_padding, button_size, button_size, 
 					{'class': 'hover-show', 'rx': header_month_shift_radius, 'ry': header_month_shift_radius, 'fill': background_color, 'style': 'cursor: pointer;'});
 				gen.add_text('monthShift', header_width-(header_padding+(button_size/2))+1, half_header_height, '>', 
-					{'fill': stroke_and_text, 'text-anchor': 'middle', 'alignment-baseline': 'central'});
+					{'class': 'text-vert-central', 'fill': stroke_and_text, 'text-anchor': 'middle',});
 				gen.end_layer();
 
 				// Month shift button handlers
@@ -641,7 +667,7 @@
 							// Draw circle and text
 							gen.add_circle(null, 0, 0, date_radius, 
 								{'stroke': cur_stroke_and_text, 'stroke-width': 1});
-							gen.add_text(null, 0, 0, cur_date, {'fill': cur_stroke_and_text, 'text-anchor': 'middle', 'alignment-baseline': 'central'})
+							gen.add_text(null, 0, 0, cur_date, {'class': 'text-vert-central', 'fill': cur_stroke_and_text, 'text-anchor': 'middle',})
 						gen.end_layer();
 
 						// Add click handler for date
@@ -755,13 +781,13 @@
 				// ---------
 
 				// Main group layer
-				gen.new_layer(null, 0, 0, {'style': `opacity: ${alpha};`});
+				gen.new_layer('habitListContainer', 0, 0);
 
 				// Header
-				gen.add_text('habitListHeader', 0, header_height, 'Habits', 
-					{'fill': stroke_and_text, 'alignment-baseline': 'bottom'});
-				gen.add_line(null, 0, header_height + header_underline_padding, list_width, header_height + header_underline_padding, 
-					{'stroke': stroke_and_text, 'stroke-width': 1});
+				gen.new_layer('habitListHeader', 0, header_height);
+				gen.add_text(null, 0, 0, 'Habits', {/*'dominant-baseline': 'bottom'*/});
+				gen.add_line(null, 0, header_underline_padding, list_width, header_underline_padding);
+				gen.end_layer();
 
 				// List layer
 				gen.new_layer('habitList', 0, header_height + header_underline_padding + entry_margin);
@@ -770,13 +796,13 @@
 				// Add habit button 
 				if(this.habit_tracker.num_habits < max_habits) {
 					// New layer
-					gen.new_layer(null, 0, 0);
-					// Add habit text
-					gen.add_text(null, entry_padding, half_entry_height, '+ Add Habit', 
-						{'fill': stroke_and_text, 'alignment-baseline': 'central'});
+					gen.new_layer('addHabitButton', 0, 0);
 					// Button rect
 					gen.add_rect(null, 0, 0, list_width, entry_height, 
-						{'class': 'hover-show', 'fill': 'transparent', 'stroke': stroke_and_text, 'rx': entry_border_radius, 'ry': entry_border_radius, 'style': 'cursor: pointer;'});
+						{'class': 'hover-show', 'rx': entry_border_radius, 'ry': entry_border_radius,});
+					// Add habit text
+					gen.add_text(null, entry_padding, half_entry_height, '+ Add Habit', 
+						{'class': 'text-vert-central'});
 					// End layer
 					gen.end_layer();
 
@@ -788,16 +814,18 @@
 				for(let k=0; k<this.habit_tracker.num_habits; k+=1) {
 					let habit = this.habit_tracker.habits[k];
 					// New layer
-					gen.new_layer(null, 0, current_y);
+					gen.new_layer(null, 0, current_y, 
+						{'class': 'habit-list-entry'});
 					// Underline
-					gen.add_line(null, entry_border_radius, entry_height, list_width, entry_height, 
-						{'stroke': light_stroke});
+					/*gen.add_line(null, entry_border_radius, entry_height-1, list_width, entry_height,
+						{'style': `stroke: ${habit.color};`});*/
+					gen.add_line(null, entry_border_radius, entry_height, list_width, entry_height);
 					// Color rect
 					gen.add_rect(null, 0, 0, entry_height, entry_height, 
-						{'fill': habit.color, 'stroke': stroke_and_text, 'rx': entry_border_radius, 'ry': entry_border_radius,});
+						{'fill': habit.color, 'rx': entry_border_radius, 'ry': entry_border_radius,});
 					// Habit name
 					gen.add_text(null, entry_height + entry_padding, half_entry_height, habit.name,
-						{'fill': stroke_and_text, 'alignment-baseline': 'central'});
+						{'class': 'text-vert-central',});
 					// End layer
 					gen.end_layer();
 
@@ -816,6 +844,17 @@
 			constructor() {
 				this.habit_tracker = new HabitTracker();
 				this.calendar = new Calendar(this.habit_tracker);
+				this.last_date_checked = new Date(0);
+
+				// Settings
+				this.settings = {
+					'auto_checklist_time': 1900,// Default to 7pm
+				};
+
+				// Aync timing vars
+				this.timers = {
+					'auto_checklist': null,
+				}
 			}
 
 			load() {
@@ -873,6 +912,89 @@
 				$(document).on('calendar:refresh', (function() {
 					this.generate_site();
 				}).bind(this)); // Bind to this
+
+				// Focus event
+				// Re-initiate this.date_checklist_popup_timer
+				/*$(document).on('focus', function() {
+
+				});*/
+				// Blur event 
+				// Stop this.date_checklist_popup_timer
+				/*$(document).on('blur', function() {
+
+				});*/
+			}
+
+			auto_checklist_handler() {
+				// Only compute if there are currently habits
+				if(this.habit_tracker.num_habits > 0) {
+					let should_check = true;
+					let should_refresh_calendar = false;
+
+					let now = new Date(Date.now());
+					// Determine if the last check should be done for today or yesterday
+					let check_hours = Math.floor(this.settings.auto_checklist_time / 100);
+					let check_minutes = this.settings.auto_checklist_time % 100;
+					let check_time = new Date(now);
+					check_time.setHours(check_hours);
+					check_time.setMinutes(check_minutes);
+					let is_today = now - check_time >= 0;
+					// If checking for yesterday, substract a date
+					if(!is_today) {
+						check_time.setDate(now.getDate() - 1);
+						// Re-focus the date for calendar (if in current month)
+						let new_focus_date = check_time.getMonth() === this.calendar.month ? check_time.getDate() : null;
+						if(new_focus_date !== this.calendar.focus_date) {
+							this.calendar.focus_date = new_focus_date;
+							should_refresh_calendar = true;
+						}
+					}
+
+					// Determine if the date should even be checked (via last_date_checked or habit_tracker)
+					// Determine via last_date_checked
+					if(this.last_date_checked.getDate() === check_time.getDate() 
+						&& this.last_date_checked.getMonth() === check_time.getMonth()
+						&& this.last_date_checked.getFullYear() === check_time.getFullYear()) {
+						should_check = false;
+					}
+					else {
+						// If checking yesterday, skip if today already has an entry
+						if(!is_today) {
+							let todays_entry = this.habit_tracker.get_date_entry(now);
+							if(todays_entry !== null)
+								should_check = false;
+						}
+						// If the date to check has all it's habits already accounted for, skip it
+						if(should_check) {		
+							let date_entry = this.habit_tracker.get_date_entry(check_time);
+							if(date_entry) {
+								let any_unset = false;
+								for(let mask = 1; mask < (1<<this.habit_tracker.num_habits); mask<<=1) {
+									if(!(date_entry & mask)) {
+										any_unset = true;
+										break;
+									}
+								}
+								if(!any_unset)
+									should_check = false;
+							}
+						}
+					}
+
+					// Set last_date_checked to check_time
+					this.last_date_checked = check_time;
+
+					// Refresh calendar if necessary
+					if(should_refresh_calendar)
+						$(document).trigger('calendar:refresh');
+					// If still should check, open the popup
+					if(should_check)
+						habit_checklist_popup(true, !is_today);
+				}
+				// Else, set last_date_checked to current time, to prevent insta_popup when adding first habit
+				else {
+					this.last_date_checked = new Date(Date.now());
+				}
 			}
 
 			/* TEMPORARY */
@@ -883,6 +1005,96 @@
 				this.habit_tracker.add_tracked_habit(2019, 3, 21, 1);
 				this.habit_tracker.add_tracked_habit(2019, 3, 21, 0);
 			}
+
+			/* POPUP COMMANDS
+			----------------- */
+			close_popup() {
+				$('#popup .popup-content').remove();
+			}
+
+			habit_checklist_popup(daily_popup=false, check_yesterday=false) {
+				// If there are no habits, never pull up this popup
+				if(this.habit_tracker.num_habits === 0) {
+					return;
+				}
+
+				// If no focus_date, this is a compromised call, cancel out with a warning
+				let calendar_date = this.calendar.date_obj;
+				if(calendar_date === null) {
+					console.warn('habit_checklist_popup: calendar_date is null, cannot determine which date to use!');
+					return;
+				}
+
+				// Initialize popup_content div
+				let popup_content = document.createElement('div');
+				popup_content.setAttribute('class', 'popup-content checklist-popup');
+
+				// If daily_popup, include greeting in the header
+				if(daily_popup) {
+					let greeting = document.createElement('div');
+					greeting.setAttribute('class', 'checklist-greeting');
+					greeting.innerText = `Let's check what you did ${check_yesterday ? 'yesterday' : 'today'}!`;
+					popup_content.appendChild(greeting);
+				}
+
+				// Include date string
+				let date_string = calendar_date.toLocaleString('en-us', {'weekday': 'long', 'year': 'numeric', 'month': 'long', 'day': 'numeric'});
+				let date_header = document.createElement('div');
+				date_header.setAttribute('class', 'checklist-date');
+				date_header.innerText = date_string;
+				popup_content.appendChild(date_header);
+
+				// Include line
+				let header_line = document.createElement('div');
+				header_line.setAttribute('class', 'checklist-line');
+				popup_content.appendChild(header_line);
+
+				// Include checklist
+				let checklist_click_handler_generator = function(habit_index) { // TEST IMPLEMENTATION
+					return function(e) {
+						console.log(`checked: ${habit_index}`);
+					}
+				}
+				let checklist_container = document.createElement('div');
+				checklist_container.setAttribute('class', 'checklist-container');
+				let date_entry = this.habit_tracker.get_date_entry(calendar_date) || 0;
+				for(let k=0; k<this.habit_tracker.num_habits; k+=1) {
+					let habit = this.habit_tracker.habits[k];
+					let habit_active = date_entry & (1<<k);
+
+					// Container div
+					let checklist_habit_entry = document.createElement('div');
+					checklist_habit_entry.setAttribute('class', `checklist-habit-entry${habit_active ? ' entry-active' : ''}`);
+
+					// Checkbox
+					let checkbox = document.createElement('div');
+					checkbox.setAttribute('class', 'checklist-checkbox');
+					let checkbox_inner = document.createElement('div');
+					checkbox_inner.setAttribute('class', 'checklist-checkbox-inner');
+					checkbox_inner.setAttribute('style', `border-color: ${habit.color};`);
+					let checkbox_inner_bg = document.createElement('div');
+					checkbox_inner_bg.setAttribute('class', 'checklist-checkbox-inner-bg');
+					checkbox_inner_bg.setAttribute('style', `background-color: ${habit.color};`);
+					checkbox_inner.appendChild(checkbox_inner_bg);
+					checkbox.appendChild(checkbox_inner);
+					checklist_habit_entry.appendChild(checkbox);
+
+					// Habit name
+					let habit_name = document.createElement('span');
+					habit_name.setAttribute('class', 'checklist-habit-name');
+					habit_name.innerText = habit.name;
+					checklist_habit_entry.appendChild(habit_name);
+
+					// Append entry
+					checklist_container.appendChild(checklist_habit_entry);
+				}
+
+				// Append checklist_container
+				popup_content.appendChild(checklist_container);
+
+				// Append popup_content
+				$('#popup')[0].appendChild(popup_content);
+			}
 		}
 
 		$(document).ready(function() {
@@ -891,6 +1103,10 @@
 			main.initiate_handlers();
 			main.set_test_habits(); // TESTING
 			main.generate_site();
+
+			main.calendar.focus_date = 21;
+			main.close_popup();
+			main.habit_checklist_popup(true);
 		});
 	</script>
 </body>
