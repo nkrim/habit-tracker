@@ -40,11 +40,41 @@ html, body {
   position: relative;
   top: 20%;
   left: -50%;
-  padding: 20px 30px;
+  padding: 30px 30px;
   box-sizing: border-box;
   border: 1px solid #888;
   border-radius: 20px;
-  background: white;
+  background: #fff;
+}
+#popup .popup-content .popup-scrim {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  pointer-events: all;
+  cursor: pointer;
+  z-index: -1;
+}
+#popup .popup-content .popup-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  text-align: center;
+  line-height: 30px;
+  font-size: 24px;
+  color: #888;
+  cursor: pointer;
+  pointer-events: all;
+  box-sizing: border-box;
+  border: 1px solid transparent;
+  border-radius: 10px;
+}
+#popup .popup-content .popup-close:hover {
+  border-color: #bbb;
 }
 #popup .popup-content.checklist-popup {
   font-family: "Courier New", Courier, monospace;
@@ -165,6 +195,34 @@ svg #monthShift {
 svg .date-circle {
   pointer-events: fill;
   cursor: pointer;
+  opacity: 0.8;
+}
+svg .date-circle.focus-date {
+  opacity: 1;
+}
+svg .date-circle.focus-date .use-stroke {
+  stroke: #444;
+}
+svg .date-circle.focus-date text {
+  fill: #444;
+}
+svg .date-circle.focus-date .focus-circle {
+  display: initial;
+}
+svg .date-circle .use-stroke {
+  stroke: #888;
+}
+svg .date-circle text {
+  fill: #888;
+}
+svg .date-circle .focus-circle {
+  display: none;
+}
+svg .date-circle .date-slice {
+  display: none;
+}
+svg .date-circle .date-slice.date-slice-active {
+  display: initial;
 }
 
 /* HABIT VIEWER 

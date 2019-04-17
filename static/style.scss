@@ -4,6 +4,8 @@ $main-gray: #888;
 $light-gray: #bbb;
 $dark-gray: #444;
 
+$ui-alpha: 0.8;
+
 /* --------- */
 
 html, body {
@@ -49,12 +51,53 @@ html, body {
 		top: 20%;
 		left: -50%;
 
-		padding: 20px 30px;
+		padding: 30px 30px;
 
 		box-sizing: border-box;
 		border: 1px solid $main-gray;
 		border-radius: 20px;
-		background: rgba(255,255,255,1);
+		background: #fff;
+
+		.popup-scrim {
+			position: fixed;
+			top: 0;
+			left: 0;
+			right: 0;
+			bottom: 0;
+
+			background-color: rgba(0,0,0,0.5);
+
+			pointer-events: all;
+			cursor: pointer;
+
+			z-index: -1;
+		}
+
+		.popup-close {
+			position: absolute;
+			top: 8px;
+			right: 8px;
+
+			width: 30px;
+			height: 30px;	
+
+			text-align: center;
+			line-height: 30px;
+
+			font-size: 24px;
+			color: $main-gray;
+
+			cursor: pointer;
+			pointer-events: all;
+
+			box-sizing: border-box;
+			border: 1px solid transparent;
+			border-radius: 10px;
+
+			&:hover {
+				border-color: $light-gray;
+			}
+		}
 
 		&.checklist-popup {
 			font-family: "Courier New", Courier, monospace;
@@ -197,6 +240,40 @@ svg #monthShift {
 svg .date-circle {
 	pointer-events: fill;
 	cursor: pointer;
+
+	opacity: $ui-alpha;
+
+	&.focus-date {
+		opacity: 1;
+
+		.use-stroke {
+			stroke: $dark-gray;
+		}
+		text {
+			fill: $dark-gray;
+		}
+		.focus-circle {
+			display: initial;
+		}
+	}
+
+	.use-stroke {
+		stroke: $main-gray;
+	}
+	text {
+		fill: $main-gray;
+	}
+	.focus-circle {
+		display: none;
+	}
+
+	.date-slice {
+		display: none;
+
+		&.date-slice-active {
+			display: initial;
+		}
+	}
 }
 
 /* HABIT VIEWER 

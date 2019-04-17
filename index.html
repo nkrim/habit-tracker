@@ -12,14 +12,13 @@
 
 	<!-- Scripts -->
 	<script src="./static/js/jquery.min.js"></script>
+	<script src="./static/js/jquery.ba-throttle-debounce.min.js"></script>
 </head>
 <body>
 
 	<div id="calendarContainer">
 		<div id="popup">
-			<div class="popup-content">
-				pee
-			</div>
+			
 		</div>
 	</div>
 
@@ -342,7 +341,7 @@
 				return true;
 			}
 
-			add_tracked_habit(year, month, date, habit_index) {
+			add_tracked_habit(year, month, date, habit_index, calendar=null) {
 				if(habit_index >= this.habits.length) {
 					console.warn(`CANNOT TRACK HABIT: index:${habit_index} is out of bounds`);
 					return false;
@@ -360,10 +359,22 @@
 					return false;
 				// Add the tracked habit to the bit-map (undefined acts like 0)
 				year_entry[date_key] |= (1<<habit_index);
+
+				// Change the tracked date on the calendar, if possible
+				if(calendar !== null) {
+					if(calendar.month === month && calendar.year === year) {
+						let date_circle = $(`#day${date}`);
+						if(date_circle) {
+							let slice = $(date_circle).children('.date-slice')[habit_index];
+							$(slice).addClass('date-slice-active');
+						}
+					}
+				}
+
 				return true;
 			}
 
-			remove_tracked_habit(year, month, date, habit_index) {
+			remove_tracked_habit(year, month, date, habit_index, calendar=null) {
 				// If year entry doesn't exist, return false
 				let year_entry = this.tracker[year];
 				if(year_entry === undefined)
@@ -375,6 +386,18 @@
 					return false;
 				// Remove the tracked habit form the bit-map
 				year_entry[date_key] &= ~(1<<habit_index);
+
+				// Change the tracked date on the calendar, if possible
+				if(calendar !== null) {
+					if(calendar.month === month && calendar.year === year) {
+						let date_circle = $(`#day${date}`);
+						if(date_circle) {
+							let slice = $(date_circle).children('.date-slice')[habit_index];
+							$(slice).removeClass('date-slice-active');
+						}
+					}
+				}
+
 				return true;
 			}
 
@@ -451,9 +474,7 @@
 
 			/* Saving and Loading Cookies
 			----------------------------- */
-			save_to_cookies() {
-				// Get object with current cookies
-				let cookie_obj = get_cookie_object();
+			save_to_cookies(cookie_obj) {
 				// Serialize habits and tracker
 				let serialized_habits = this.serialize_habits();
 				let serialized_tracker = this.serialize_tracker();
@@ -470,9 +491,10 @@
 				save_cookie('use_alt', use_alt ? 1 : 0);
 			}
 
-			load_from_cookies() {
+			load_from_cookies(cookie_obj) {
 				// Get object with current cookies
-				let cookie_obj = get_cookie_object();
+				// if(!cookie_obj)
+				// 	cookie_obj = get_cookie_object();
 				// If use_alt is set to 1, cookie keys prefixed with "_"
 				let use_alt_cookie = cookie_obj['use_alt'];
 				let use_alt = use_alt_cookie === '1';
@@ -514,6 +536,20 @@
 
 			/* VIEW CHANGES
 			--------------- */
+			set_focus_date(new_date) {
+				// Remove class from old circle
+				if(this.focus_date !== null) {
+					let old_focus_circle = $(`#day${this.focus_date}`);
+					$(old_focus_circle).removeClass('focus-date');
+				}
+				// Set new focus date and find new circle
+				this.focus_date = new_date;
+				if(this.focus_date !== null) {
+					let new_focus_circle = $(`#day${this.focus_date}`);
+					$(new_focus_circle).addClass('focus-date');
+				}
+			}
+
 			shift_month_forward() {
 				if(this.month === 11) {
 					this.month = 0;
@@ -621,6 +657,8 @@
 					this.shift_month_forward();
 				}).bind(this));
 
+				// Generate generic date circle
+
 				// Generate date circles
 				let cur_date = 1;
 				for(let i = 0; i<num_rows; i += 1) {
@@ -629,16 +667,14 @@
 					let j = i === 0 ? first_day : 0;
 					while(j<7 && cur_date <= num_days) {
 						let xc = date_radius + 2*j*(date_radius + date_padding);
+						let is_focus = cur_date === this.focus_date;
 						// Date layer
 						let date_g = gen.new_layer(`day${cur_date}`, xc, 0, 
-							{'class':'date-circle', 'style': `opacity: ${cur_date === this.focus_date ? 1 : alpha};`});
-
-							// Get proper stroke_and_text
-							let cur_stroke_and_text = cur_date === this.focus_date ? focus_stroke_and_text : stroke_and_text;
+							{'class':`date-circle ${is_focus ? 'focus-date' : ''}`,});
 
 							// Background circle
 							gen.add_circle(null, 0, 0, date_radius, 
-								{'fill': background_color, 'stroke': 'transparent'});
+								{'fill': background_color, 'stroke': 'transparent !important'});
 
 							// Determine slices to show from habit tracker
 							if(year_entry && this.habit_tracker.num_habits) {
@@ -646,28 +682,24 @@
 								let date_entry = year_entry[date_key];
 								let slice_theta = 2*Math.PI/this.habit_tracker.num_habits;
 								for(let k=0; k<this.habit_tracker.num_habits; k+=1) {
-									if(date_entry & (1<<k)) {
-										let habit_color = this.habit_tracker.habits[k].color;
-										gen.add_slice(null, 0, 0, date_radius-0.5, k*slice_theta, slice_theta, 
-											{'fill': habit_color});
-									}
+									let habit_color = this.habit_tracker.habits[k].color;
+									gen.add_slice(null, 0, 0, date_radius-0.5, k*slice_theta, slice_theta, 
+										{'fill': habit_color, 'class': `date-slice ${date_entry & (1<<k) ? 'date-slice-active' : ''}`});
 								}
 							}
 
 							// If is today's date, add an extra embelishing circle
 							if(cur_date === this.date) {
 								gen.add_circle(null, 0, 0, today_radius, 
-									{'stroke': cur_stroke_and_text, 'stroke-width': 1});
+									{'class': 'use-stroke', 'stroke-width': 1});
 							} 
-							// If is focus date, add an extra embelishing circle
-							if(cur_date === this.focus_date) {
-								gen.add_circle(null, 0, 0, focus_radius, 
-									{'stroke': cur_stroke_and_text, 'stroke-width': 1});
-							} 
+							// Add focus date embelishing circle (only showing if date is focused)
+							gen.add_circle(null, 0, 0, focus_radius, 
+									{'class': 'use-stroke focus-circle', 'stroke-width': 1});
 							// Draw circle and text
 							gen.add_circle(null, 0, 0, date_radius, 
-								{'stroke': cur_stroke_and_text, 'stroke-width': 1});
-							gen.add_text(null, 0, 0, cur_date, {'class': 'text-vert-central', 'fill': cur_stroke_and_text, 'text-anchor': 'middle',})
+								{'class': 'use-stroke', 'stroke-width': 1});
+							gen.add_text(null, 0, 0, cur_date, {'class': 'text-vert-central', 'text-anchor': 'middle',})
 						gen.end_layer();
 
 						// Add click handler for date
@@ -676,10 +708,9 @@
 								// Always stop click propogation
 								e.stopPropagation();
 								// Change focus
-								this.focus_date = date;
-								console.log(this.focus_date);
-								// Refresh calendar
-								$(document).trigger('calendar:refresh');
+								this.set_focus_date(date);
+								// Open popup
+								$(document).trigger('calendar:open_popup');
 							}).bind(this));
 						}).bind(this)(cur_date);
 
@@ -844,7 +875,14 @@
 			constructor() {
 				this.habit_tracker = new HabitTracker();
 				this.calendar = new Calendar(this.habit_tracker);
-				this.last_date_checked = new Date(0);
+
+				// Debounced call to save
+				this.debounced_save = $.debounce(1000, this.save);
+
+				// Persistent values
+				this.persistent = {
+					'last_date_checked': new Date(0)
+				}
 
 				// Settings
 				this.settings = {
@@ -857,12 +895,37 @@
 				}
 			}
 
+			/* SAVING AND LOADING
+			--------------------- */
 			load() {
-				this.habit_tracker.load_from_cookies();
+				let cookie_obj = get_cookie_object();
+				this.habit_tracker.load_from_cookies(cookie_obj);
+				this.load_persistent_values(cookie_obj);
 			}
 			save() {
-				this.habit_tracker.save_to_cookies();
+				let cookie_obj = get_cookie_object();
+				this.habit_tracker.save_to_cookies(cookie_obj);
+				this.save_persistent_values();
 			}
+
+			save_persistent_values() {
+				save_cookie('persistent', JSON.stringify(this.persistent));
+			}
+			load_persistent_values(cookie_obj) {
+				let values_from_cookies = cookie_obj['persistent'];
+				try {
+					let deserialized = JSON.parse(values_from_cookies);
+					this.persistent = deserialized;
+					// Adjust specific values for type
+					this.persistent.last_date_checked = new Date(this.persistent.last_date_checked);
+					return true;
+				}
+				catch(err) {
+					console.log('FAILED: load_persistent_values(): parsing values_from_cookies');
+					return false;
+				}
+			}
+			/* ------------------ */
 
 			generate_site() {
 				// Timing 
@@ -902,15 +965,23 @@
 				$('#calendarContainer').click((function() {
 					console.log('pee');
 					// Reset focus_date
-					this.calendar.focus_date = null;
-					// Refresh calendar
-					this.generate_site();
+					this.calendar.set_focus_date(null);
 				}).bind(this));*/
 
 
 				// Refresh event
 				$(document).on('calendar:refresh', (function() {
 					this.generate_site();
+				}).bind(this)); // Bind to this
+
+				// Open-popup event
+				$(document).on('calendar:open_popup', (function() {
+					this.habit_checklist_popup();
+				}).bind(this));
+
+				// Close-popup event
+				$(document).on('calendar:close_popup', (function() {
+					this.close_popup();
 				}).bind(this)); // Bind to this
 
 				// Focus event
@@ -925,36 +996,47 @@
 				});*/
 			}
 
+			start_auto_checklist(interval_time=60000) {
+				if(this.timers.auto_checklist !== null)
+					clearInterval(this.timers.auto_checklist);
+				this.auto_checklist_handler();
+				let timer = setInterval(this.auto_checklist_handler.bind(this), interval_time);
+				this.timers.auto_checklist = timer;
+				return timer;
+			}
+			stop_auto_checklist() {
+				if(this.timers.auto_checklist !== null) {
+					clearInterval(this.timers.auto_checklist);
+					this.auto_checklist_handler = null;
+				}
+			}
 			auto_checklist_handler() {
+				// Persistent values to track changes for
+				let old_last_date_checked = this.persistent.last_date_checked;
+
 				// Only compute if there are currently habits
 				if(this.habit_tracker.num_habits > 0) {
 					let should_check = true;
-					let should_refresh_calendar = false;
 
 					let now = new Date(Date.now());
 					// Determine if the last check should be done for today or yesterday
 					let check_hours = Math.floor(this.settings.auto_checklist_time / 100);
 					let check_minutes = this.settings.auto_checklist_time % 100;
-					let check_time = new Date(now);
+					let check_time = new Date(now.getFullYear(), now.getMonth(), now.getDate(), check_hours, check_minutes);
 					check_time.setHours(check_hours);
 					check_time.setMinutes(check_minutes);
+					check_time.setSeconds(0);
 					let is_today = now - check_time >= 0;
 					// If checking for yesterday, substract a date
 					if(!is_today) {
 						check_time.setDate(now.getDate() - 1);
-						// Re-focus the date for calendar (if in current month)
-						let new_focus_date = check_time.getMonth() === this.calendar.month ? check_time.getDate() : null;
-						if(new_focus_date !== this.calendar.focus_date) {
-							this.calendar.focus_date = new_focus_date;
-							should_refresh_calendar = true;
-						}
 					}
 
 					// Determine if the date should even be checked (via last_date_checked or habit_tracker)
 					// Determine via last_date_checked
-					if(this.last_date_checked.getDate() === check_time.getDate() 
-						&& this.last_date_checked.getMonth() === check_time.getMonth()
-						&& this.last_date_checked.getFullYear() === check_time.getFullYear()) {
+					if(this.persistent.last_date_checked.getDate() === check_time.getDate() 
+						&& this.persistent.last_date_checked.getMonth() === check_time.getMonth()
+						&& this.persistent.last_date_checked.getFullYear() === check_time.getFullYear()) {
 						should_check = false;
 					}
 					else {
@@ -982,19 +1064,33 @@
 					}
 
 					// Set last_date_checked to check_time
-					this.last_date_checked = check_time;
+					this.persistent.last_date_checked = check_time;
 
-					// Refresh calendar if necessary
-					if(should_refresh_calendar)
-						$(document).trigger('calendar:refresh');
 					// If still should check, open the popup
-					if(should_check)
-						habit_checklist_popup(true, !is_today);
+					if(should_check) {
+						this.close_popup();
+						this.habit_checklist_popup(true, !is_today);
+
+						// Re-focus the date for calendar (if in current month)
+						let new_focus_date = check_time.getMonth() === this.calendar.month ? check_time.getDate() : null;
+						if(new_focus_date !== this.calendar.focus_date) {
+							this.calendar.set_focus_date(new_focus_date);
+						}
+					}
 				}
 				// Else, set last_date_checked to current time, to prevent insta_popup when adding first habit
 				else {
-					this.last_date_checked = new Date(Date.now());
+					this.persistent.last_date_checked = new Date(Date.now());
 				}
+
+				// If changed, save persistent_values so last_date_checked is consistent
+				if(+old_last_date_checked !== +this.persistent.last_date_checked) {
+					this.save_persistent_values();
+				}
+			}
+
+			set_intervals() {
+				this.start_auto_checklist(60000);
 			}
 
 			/* TEMPORARY */
@@ -1008,6 +1104,24 @@
 
 			/* POPUP COMMANDS
 			----------------- */
+			create_popup_with_scrim(extra_classes) {
+				// Create popup-content
+				let popup = document.createElement('div');
+				popup.setAttribute('class', 'popup-content '+extra_classes);
+				// Create scrim
+				let scrim = document.createElement('div');
+				scrim.setAttribute('class', 'popup-scrim');
+				scrim.setAttribute('onclick', '$(document).trigger(\'calendar:close_popup\');');
+				popup.appendChild(scrim);
+				// Create close button
+				let close_button = document.createElement('div');
+				close_button.setAttribute('class', 'popup-close');
+				close_button.setAttribute('onclick', '$(document).trigger(\'calendar:close_popup\');');
+				close_button.innerText = 'X';
+				popup.append(close_button);
+				return popup;
+			}
+
 			close_popup() {
 				$('#popup .popup-content').remove();
 			}
@@ -1026,8 +1140,7 @@
 				}
 
 				// Initialize popup_content div
-				let popup_content = document.createElement('div');
-				popup_content.setAttribute('class', 'popup-content checklist-popup');
+				let popup_content = this.create_popup_with_scrim('checklist-popup');
 
 				// If daily_popup, include greeting in the header
 				if(daily_popup) {
@@ -1050,11 +1163,24 @@
 				popup_content.appendChild(header_line);
 
 				// Include checklist
-				let checklist_click_handler_generator = function(habit_index) { // TEST IMPLEMENTATION
-					return function(e) {
-						console.log(`checked: ${habit_index}`);
-					}
-				}
+				let checklist_click_handler_generator = (function(habit_index) { // TEST IMPLEMENTATION
+					return (function(e) {
+						let target = e.currentTarget;
+						let is_active = $(target).hasClass('entry-active');
+						// If active, remove the tracked habit and then remove entry-active class
+						if(is_active) {
+							this.habit_tracker.remove_tracked_habit(calendar_date.getFullYear(), calendar_date.getMonth(), calendar_date.getDate(), habit_index, this.calendar);
+							$(target).removeClass('entry-active');
+							this.debounced_save();
+						}
+						// Else, add the tracked habit and add entry-active class
+						else {
+							this.habit_tracker.add_tracked_habit(calendar_date.getFullYear(), calendar_date.getMonth(), calendar_date.getDate(), habit_index, this.calendar);
+							$(target).addClass('entry-active');
+							this.debounced_save();
+						}
+					}).bind(this);
+				}).bind(this);
 				let checklist_container = document.createElement('div');
 				checklist_container.setAttribute('class', 'checklist-container');
 				let date_entry = this.habit_tracker.get_date_entry(calendar_date) || 0;
@@ -1065,6 +1191,7 @@
 					// Container div
 					let checklist_habit_entry = document.createElement('div');
 					checklist_habit_entry.setAttribute('class', `checklist-habit-entry${habit_active ? ' entry-active' : ''}`);
+					$(checklist_habit_entry).click(checklist_click_handler_generator(k));
 
 					// Checkbox
 					let checkbox = document.createElement('div');
@@ -1097,16 +1224,26 @@
 			}
 		}
 
+		var main = new Main(); // FOR TESTING
 		$(document).ready(function() {
-			let main = new Main();
+			// let main = new Main();
+
+			main.set_test_habits(); // TESTING
+			main.load();
+			main.close_popup();
 
 			main.initiate_handlers();
-			main.set_test_habits(); // TESTING
+			console.log('handlers initiated');
+			main.set_intervals();
+			console.log('intervals set');
 			main.generate_site();
 
-			main.calendar.focus_date = 21;
-			main.close_popup();
-			main.habit_checklist_popup(true);
+			main.save();
+
+			// Testing
+			// main.calendar.focus_date = 21;
+			// main.generate_site();
+			// main.habit_checklist_popup(true);
 		});
 	</script>
 </body>
