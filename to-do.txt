@@ -1,7 +1,7 @@
 - Habit viewer
 	- Make list editable
 	- Adjust view-circle hovering postions
-	- Get statistics (once statistics are ready)
+	- Get statistics (once statistics are ready) 
 - Habit creation / removal
 - Properly scale calendar
 
