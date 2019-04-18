@@ -2,7 +2,6 @@
 	- Make list editable
 	- Adjust view-circle hovering postions
 	- Get statistics (once statistics are ready)
-- Date checklist on focus (and on day change / first load)
 - Habit creation / removal
 - Properly scale calendar
 

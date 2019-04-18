@@ -35,6 +35,14 @@ html, body {
   left: 50%;
   bottom: 0;
   z-index: 10;
+  opacity: 0;
+  transition: none;
+  visibility: hidden;
+}
+#popup.popup-opened {
+  transition: opacity 0.2s ease-in 0.05s;
+  opacity: 1;
+  visibility: visible;
 }
 #popup .popup-content {
   position: relative;

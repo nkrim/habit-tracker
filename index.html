@@ -550,6 +550,21 @@
 				}
 			}
 
+			set_month(new_month, new_year) {
+				this.year = new_year;
+				this.month = new_month % 12;
+				// If returning to current month, set date to today, otherwise set to null
+				let now = new Date(Date.now());
+				if(now.getMonth() === this.month)
+					this.date = now.getDate();
+				else
+					this.date = null;
+				// Set focus date to current date
+				this.focus_date = this.date;
+				// REFRESH CALENDAR VIEW
+				$(document).trigger('calendar:refresh');
+			}
+
 			shift_month_forward() {
 				if(this.month === 11) {
 					this.month = 0;
@@ -881,7 +896,7 @@
 
 				// Persistent values
 				this.persistent = {
-					'last_date_checked': new Date(0)
+					'last_date_checked': new Date(0),
 				}
 
 				// Settings
@@ -892,6 +907,7 @@
 				// Aync timing vars
 				this.timers = {
 					'auto_checklist': null,
+					'today_date_change': null,
 				}
 			}
 
@@ -996,6 +1012,7 @@
 				});*/
 			}
 
+			// AUTO_CHECKLIST
 			start_auto_checklist(interval_time=60000) {
 				if(this.timers.auto_checklist !== null)
 					clearInterval(this.timers.auto_checklist);
@@ -1089,8 +1106,49 @@
 				}
 			}
 
+			// TODAY_DATE_CHANGE
+			start_today_date_change(interval_time=60000) {
+				if(this.timers.today_date_change !== null)
+					clearInterval(this.timers.today_date_change);
+				this.today_date_change_handler();
+				let timer = setInterval(this.today_date_change_handler.bind(this), interval_time);
+				this.timers.today_date_change = timer;
+				return timer;
+			}
+			stop_today_date_change() {
+				if(this.timers.today_date_change !== null) {
+					clearInterval(this.timers.today_date_change);
+					this.today_date_change = null;
+				}
+			}
+			today_date_change_handler() {
+				let now = new Date(Date.now());
+				let cur_year = now.getFullYear();
+				let cur_month = now.getMonth();
+				let cur_date = now.getDate();
+				// Check if month or year has changed for calendar date, if so set month
+				if(cur_month !== this.calendar.month || cur_year !== this.calendar.year) {
+					this.calendar.set_month(cur_month, cur_year); // Has refresh in the function
+				}
+				// Else if date has changed, just change the date and refresh
+				else if(cur_date !== this.calendar.date) {
+					this.calendar.date = cur_date;
+					this.generate_site();
+					// If popup is not open, then set today as focus date
+					if(!$('#popup').hasClass('popup-opened')) {
+						this.calendar.set_focus_date(cur_date);
+					}
+				}
+			}
+
+
 			set_intervals() {
+				this.start_today_date_change(60000);
 				this.start_auto_checklist(60000);
+			}
+			stop_intervals() {
+				this.stop_today_date_change();
+				this.stop_auto_checklist();
 			}
 
 			/* TEMPORARY */
@@ -1122,8 +1180,12 @@
 				return popup;
 			}
 
+			open_popup() {
+				$('#popup').addClass('popup-opened');
+			}
 			close_popup() {
 				$('#popup .popup-content').remove();
+				$('#popup').removeClass('popup-opened');
 			}
 
 			habit_checklist_popup(daily_popup=false, check_yesterday=false) {
@@ -1221,10 +1283,11 @@
 
 				// Append popup_content
 				$('#popup')[0].appendChild(popup_content);
+				this.open_popup();
 			}
 		}
 
-		var main = new Main(); // FOR TESTING
+		var main = new Main(); // EXPOSED FOR TESTING
 		$(document).ready(function() {
 			// let main = new Main();
 
