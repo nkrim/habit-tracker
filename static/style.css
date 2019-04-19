@@ -361,6 +361,10 @@ svg #habitListContainer #addHabitButton rect:active {
 svg #habitList text {
   font-size: 18px;
 }
+svg #habitList .habit-list-entry {
+  cursor: pointer;
+  pointer-events: all;
+}
 svg #habitList .habit-list-entry line {
   stroke: #bbb;
   stroke-width: 1;

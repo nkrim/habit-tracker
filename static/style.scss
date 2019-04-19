@@ -454,6 +454,9 @@ svg #habitList {
 	}
 
 	.habit-list-entry {
+		cursor: pointer;
+		pointer-events: all;
+
 		line {
 			stroke: $light-gray;
 			stroke-width: 1;

@@ -2,7 +2,7 @@
 	- Make list editable
 	- Adjust view-circle hovering postions
 	- Get statistics (once statistics are ready) 
-- Habit editing / removal
+- Habit removal
 - Properly scale calendar
 - Settings menu
 
