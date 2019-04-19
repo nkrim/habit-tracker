@@ -763,7 +763,7 @@
 						// Generate slice
 						gen.add_slice('habitSlice', 0, 0, viewer_radius-0.5, k*slice_theta, slice_theta, 
 							{'fill': habit.color});
-						// Generate text
+						/*// Generate text
 						gen.new_layer(`habitText${k}`, 0, 0, {'class': 'habit-text'});
 						gen.add_text(null, habit_text_x, habit_text_y, habit.name, 
 							{'text-anchor': 'end', 'fill': stroke_and_text});
@@ -790,7 +790,7 @@
 
 						// Generate small circle for end of line (always showing)
 						gen.add_circle(null, slice_point_x, slice_point_y, habit_focus_circle_radius, 
-							{'fill': habit.color, 'stroke': stroke_and_text, 'stroke-width': 1});
+							{'fill': habit.color, 'stroke': stroke_and_text, 'stroke-width': 1});*/
 
 						// End layer
 						gen.end_layer();
@@ -802,9 +802,9 @@
 					{'fill': 'transparent', 'stroke': stroke_and_text, 'stroke-width': 1});
 
 				// Generate use tags for habitText
-				for(let k=0; k<this.habit_tracker.num_habits-1; k+=1) {
+				/*for(let k=0; k<this.habit_tracker.num_habits-1; k+=1) {
 					gen.add_use(null, `habitText${k}`);
-				}
+				}*/
 
 				gen.end_layer();
 			}
