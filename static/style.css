@@ -218,7 +218,7 @@ html, body {
   box-sizing: border-box;
   border-radius: 10px;
 }
-#popup .popup-content.add-habit-popup .submit-button {
+#popup .popup-content.add-habit-popup .submit-button, #popup .popup-content.add-habit-popup .remove-button {
   display: block;
   text-align: center;
   font-size: 18px;
@@ -229,11 +229,11 @@ html, body {
   border-radius: 12px;
   cursor: pointer;
 }
-#popup .popup-content.add-habit-popup .submit-button.inactive-button {
+#popup .popup-content.add-habit-popup .submit-button.inactive-button, #popup .popup-content.add-habit-popup .remove-button.inactive-button {
   opacity: 0.25;
   background-color: #bbb;
 }
-#popup .popup-content.add-habit-popup .submit-button:hover {
+#popup .popup-content.add-habit-popup .submit-button:hover, #popup .popup-content.add-habit-popup .remove-button:hover {
   border: 1px solid #bbb;
 }
 
@@ -364,6 +364,9 @@ svg #habitList text {
 svg #habitList .habit-list-entry {
   cursor: pointer;
   pointer-events: all;
+}
+svg #habitList .habit-list-entry:hover line {
+  stroke: #888;
 }
 svg #habitList .habit-list-entry line {
   stroke: #bbb;

@@ -288,7 +288,7 @@ html, body {
 				}
 			}
 
-			.submit-button {
+			.submit-button, .remove-button {
 				display: block;
 
 				text-align: center;
@@ -456,6 +456,10 @@ svg #habitList {
 	.habit-list-entry {
 		cursor: pointer;
 		pointer-events: all;
+
+		&:hover line {
+			stroke: $main-gray;
+		}
 
 		line {
 			stroke: $light-gray;

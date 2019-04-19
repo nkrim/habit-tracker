@@ -1556,6 +1556,21 @@
 				}).bind(this));
 				popup_content.appendChild(submit_button)
 
+				// Remove button
+				let remove_button = document.createElement('div');
+				remove_button.setAttribute('class', 'remove-button');
+				remove_button.innerText = 'Remove Habit';
+				$(remove_button).click((function() {
+					this.close_popup();
+					// Remove habit
+					this.habit_tracker.remove_habit(habit_index);
+					// Debounced save
+					this.debounced_save();
+					// Refresh calendar
+					this.generate_site();
+				}).bind(this));
+				popup_content.appendChild(remove_button);
+
 				// Append popup_content
 				$('#popup')[0].appendChild(popup_content);
 				this.open_popup();
