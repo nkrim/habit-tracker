@@ -842,7 +842,7 @@
 				// Add habit button 
 				if(this.habit_tracker.num_habits < max_habits) {
 					// New layer
-					gen.new_layer('addHabitButton', 0, 0);
+					let add_habit_button = gen.new_layer('addHabitButton', 0, 0);
 					// Button rect
 					gen.add_rect(null, 0, 0, list_width, entry_height, 
 						{'class': 'hover-show', 'rx': entry_border_radius, 'ry': entry_border_radius,});
@@ -854,7 +854,13 @@
 
 					// Increment current_y
 					current_y += entry_height + entry_margin;
+
+					// Set handler for button
+					$(add_habit_button).click(function() {
+						$(document).trigger('calendar:add_habit');
+					});
 				}
+
 
 				// Habits
 				for(let k=0; k<this.habit_tracker.num_habits; k+=1) {
@@ -884,6 +890,29 @@
 
 	<!-- Main -->
 	<script type="text/javascript">
+		// STATICS
+		let habit_colors = [
+			'#BAE1FF', // pastel blue
+			'#92B6FF', // normal blue
+			'#BAA6FF', // normal purple
+			'#E1C9FF', // pastel purple
+
+			'#A0FFFC', // baby blue
+			'#91FDDE', // turqoise
+			'#BFFFBA', // pastel green
+			'#CEFF86', // lime green
+
+			'#FFFFBA', // pastel yellow
+			'#FFF38C', // normal yellow
+			'#FFE2BA', // pastel orange
+			'#FFC88A', // normal orange
+
+			'#FFCBBA', // pastel red
+			'#FCAA9C', // normal red
+			'#FFA6C5', // fuschia 
+			'#FFCCE2', // pink
+		];
+
 		class Main {
 			/* Constructor
 			-------------- */
@@ -901,7 +930,7 @@
 
 				// Settings
 				this.settings = {
-					'auto_checklist_time': 1900,// Default to 7pm
+					'auto_checklist_time': 1633,// Default to 7pm
 				};
 
 				// Aync timing vars
@@ -990,6 +1019,11 @@
 					this.generate_site();
 				}).bind(this)); // Bind to this
 
+				// Add-habit event
+				$(document).on('calendar:add_habit', (function() {
+					this.add_habit_popup();
+				}).bind(this));
+
 				// Open-popup event
 				$(document).on('calendar:open_popup', (function() {
 					this.habit_checklist_popup();
@@ -1002,14 +1036,14 @@
 
 				// Focus event
 				// Re-initiate this.date_checklist_popup_timer
-				/*$(document).on('focus', function() {
-
-				});*/
+				$(window).focus((function() {
+					this.set_intervals();
+				}).bind(this));
 				// Blur event 
 				// Stop this.date_checklist_popup_timer
-				/*$(document).on('blur', function() {
-
-				});*/
+				$(window).blur((function() {
+					this.stop_intervals();
+				}).bind(this));
 			}
 
 			// AUTO_CHECKLIST
@@ -1024,7 +1058,7 @@
 			stop_auto_checklist() {
 				if(this.timers.auto_checklist !== null) {
 					clearInterval(this.timers.auto_checklist);
-					this.auto_checklist_handler = null;
+					this.timers.auto_checklist_handler = null;
 				}
 			}
 			auto_checklist_handler() {
@@ -1215,13 +1249,13 @@
 				// Include date string
 				let date_string = calendar_date.toLocaleString('en-us', {'weekday': 'long', 'year': 'numeric', 'month': 'long', 'day': 'numeric'});
 				let date_header = document.createElement('div');
-				date_header.setAttribute('class', 'checklist-date');
+				date_header.setAttribute('class', 'popup-header checklist-date');
 				date_header.innerText = date_string;
 				popup_content.appendChild(date_header);
 
 				// Include line
 				let header_line = document.createElement('div');
-				header_line.setAttribute('class', 'checklist-line');
+				header_line.setAttribute('class', 'popup-header-line');
 				popup_content.appendChild(header_line);
 
 				// Include checklist
@@ -1285,13 +1319,122 @@
 				$('#popup')[0].appendChild(popup_content);
 				this.open_popup();
 			}
+
+			add_habit_popup() {
+				// Initialize popup_content div
+				let popup_content = this.create_popup_with_scrim('add-habit-popup');
+
+
+				// Header
+				let header = document.createElement('div');
+				header.setAttribute('class', 'popup-header');
+				header.innerText = 'Add New Habit';
+				popup_content.appendChild(header);
+
+				// Include line
+				let header_line = document.createElement('div');
+				header_line.setAttribute('class', 'popup-header-line');
+				popup_content.appendChild(header_line);
+
+				// Handler for figuring out if the submit button should be active
+				let determine_submit_button_state = function() {
+					let submit_button = $('.add-habit-popup .submit-button');
+					let is_inactive = $(submit_button).hasClass('inactive-button');
+					let should_be_active = true;
+					let input = $('.add-habit-popup .habit-name-input')[0];
+					if(input.value.length === 0 || $('.add-habit-popup .color-picker-option.selected').length === 0)
+						should_be_active = false;
+					// Adjust submit_button state
+					if(should_be_active && is_inactive)
+						$(submit_button).removeClass('inactive-button');
+					else if(!should_be_active && !is_inactive)
+						$(submit_button).addClass('inactive-button');
+				}
+
+				// Input box
+				let name_input = document.createElement('input');
+				name_input.setAttribute('class', 'habit-name-input');
+				name_input.setAttribute('placeholder', 'Habit name');
+				name_input.setAttribute('maxlength', 20);
+				$(name_input).on('input', determine_submit_button_state);
+				popup_content.appendChild(name_input);
+
+				// Color picker selection handler generator
+				let selection_handler = function(e) {
+					let target = e.currentTarget;
+					$('.add-habit-popup .color-picker-option.selected').removeClass('selected');
+					$(target).addClass('selected');
+					determine_submit_button_state(); // Update submit button state
+				};
+				// Color picker
+				let color_picker_container = document.createElement('div');
+				color_picker_container.setAttribute('class', 'color-picker-container');
+				// Color picker rows
+				for(let i=0; i<4; i+=1) {
+					let color_picker_row = document.createElement('div');
+					color_picker_row.setAttribute('class', 'color-picker-row');
+					// Color picker option
+					for(let j=0; j<4; j+=1) {
+						let color_picker_option = document.createElement('div');
+						color_picker_option.setAttribute('class', 'color-picker-option');
+						let color_index = 4*i + j;
+						if(color_index < habit_colors.length) {
+							let option_color = habit_colors[color_index];
+							color_picker_option.setAttribute('style', `background-color: ${option_color}`);
+							color_picker_option.setAttribute('color-value', option_color);
+							$(color_picker_option).click(selection_handler);
+							// Determine if the color is available
+							for(let k=0; k<this.habit_tracker.num_habits; k+=1) {
+								let habit_color = this.habit_tracker.habits[k].color;
+								if(habit_color === option_color) {
+									$(color_picker_option).addClass('option-unavailable');
+									break;
+								}
+							}
+						}
+						// Append option
+						color_picker_row.appendChild(color_picker_option);
+					}
+					// Append row
+					color_picker_container.appendChild(color_picker_row);
+				}
+
+				// Append color picker
+				popup_content.appendChild(color_picker_container);
+
+				// Submit button
+				let submit_button = document.createElement('div');
+				submit_button.setAttribute('class', 'submit-button inactive-button');
+				submit_button.innerText = 'Add Habit';
+				$(submit_button).click((function() {
+					// If any of the values are bad, don't do anything
+					let input = $('.add-habit-popup .habit-name-input')[0];
+					let selected_colors = $('.add-habit-popup .color-picker-option.selected');
+					if(input.value.length === 0 || selected_colors.length === 0)
+						return;
+					// Close popup
+					this.close_popup();
+					// Add habit
+					let name = input.value;
+					let color = $(selected_colors).attr('color-value');
+					this.habit_tracker.add_habit(name, color);
+					// Debounced save
+					this.debounced_save();
+					// Refresh calendar
+					this.generate_site();
+				}).bind(this));
+				popup_content.appendChild(submit_button)
+
+				// Append popup_content
+				$('#popup')[0].appendChild(popup_content);
+				this.open_popup();
+			}
 		}
 
 		var main = new Main(); // EXPOSED FOR TESTING
 		$(document).ready(function() {
 			// let main = new Main();
 
-			main.set_test_habits(); // TESTING
 			main.load();
 			main.close_popup();
 
@@ -1300,13 +1443,6 @@
 			main.set_intervals();
 			console.log('intervals set');
 			main.generate_site();
-
-			main.save();
-
-			// Testing
-			// main.calendar.focus_date = 21;
-			// main.generate_site();
-			// main.habit_checklist_popup(true);
 		});
 	</script>
 </body>

@@ -61,6 +61,12 @@ html, body {
 		top: 20%;
 		left: -50%;
 
+		display: flex;
+		flex-direction: column;
+		justify-content: start;
+
+		font-family: "Courier New", Courier, monospace;
+
 		padding: 30px 30px;
 
 		box-sizing: border-box;
@@ -109,12 +115,23 @@ html, body {
 			}
 		}
 
-		&.checklist-popup {
-			font-family: "Courier New", Courier, monospace;
+		.popup-header {
+			color: $dark-gray;
+			text-align: center;
+			font-size: 28px;
+			font-weight: 700;
+			white-space: nowrap;
 
-			display: flex;
-			flex-direction: column;
-			justify-content: start;
+			padding: 4px 30px 10px;
+		}
+
+		.popup-header-line {
+			width: 100%;
+			height: 10px;
+			border-top: 1px solid $main-gray;
+		}
+
+		&.checklist-popup {
 
 			.checklist-greeting {
 				color: $dark-gray;
@@ -123,18 +140,7 @@ html, body {
 			}
 
 			.checklist-date {
-				color: $dark-gray;
-				text-align: center;
-				font-size: 24px;
-				font-weight: 700;
-
-				padding: 4px 30px 10px;
-			}
-
-			.checklist-line {
-				width: 100%;
-				height: 10px;
-				border-top: 1px solid $main-gray;
+				
 			}
 
 			.checklist-container {
@@ -198,6 +204,112 @@ html, body {
 
 				.checklist-habit-name {
 					padding-left: 12px;
+				}
+			}
+		}
+
+		&.add-habit-popup {
+
+			.habit-name-input {
+				width: 300px;
+				box-sizing: border-box;
+
+				margin: 10px 30px;
+				padding: 8px 12px 4px;
+
+				text-align: center;
+				font-size: 18px;
+				font-family: "Courier New", Courier, monospace;
+
+				// border-radius: 10px;
+				border: none;
+				border-bottom: 1px solid $light-gray;
+
+				&:focus {
+					outline: none;
+				}
+				&::placeholder { color: $light-gray; }
+				&::-webkit-input-placeholder { color: $light-gray; }
+				&::-moz-placeholder { color: $light-gray; }
+				&:-ms-input-placeholder { color: $light-gray; }
+				&:-moz-placeholder { color: $light-gray; }
+			}
+
+			.color-picker-container {
+				align-self: center;
+
+				width: 240px;
+				height: 240px;
+
+				display: flex;
+				flex-direction: column;
+				justify-content: space-between;
+
+				// box-sizing: border-box;
+				padding: 16px 30px 16px;
+			}
+
+			.color-picker-row {
+				width: 100%;
+
+				display: flex;
+				flex-direction: row;
+				justify-content: space-between;
+			}
+
+			.color-picker-option {
+				width: 40px;
+				height: 40px;
+
+				border: 1px solid $light-gray;
+				border-radius: 12px;
+
+				cursor: pointer;
+
+				&.option-unavailable {
+					cursor: initial;
+					opacity: 0.25;
+				}
+
+				&.selected:after {
+					content: '';
+
+					display: block;
+					background-color: #fff;
+
+					width: 10px;
+					height: 10px;
+
+					margin: 15px; 
+
+					box-sizing: border-box;
+					border-radius: 10px;
+					// border: 1px solid $light-gray;
+				}
+			}
+
+			.submit-button {
+				display: block;
+
+				text-align: center;
+				font-size: 18px;
+
+				margin: 16px 0 0;
+				padding: 10px 20px;
+
+				box-sizing: border-box;
+				border: 1px solid $main-gray;
+				border-radius: 12px;
+
+				cursor: pointer;
+
+				&.inactive-button {
+					opacity: 0.25;
+					background-color: $light-gray;
+				} 
+
+				&:hover {
+					border: 1px solid $light-gray;
 				}
 			}
 		}

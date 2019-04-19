@@ -2,8 +2,9 @@
 	- Make list editable
 	- Adjust view-circle hovering postions
 	- Get statistics (once statistics are ready) 
-- Habit creation / removal
+- Habit editing / removal
 - Properly scale calendar
+- Settings menu
 
 - BG Visuals
 	- More image options

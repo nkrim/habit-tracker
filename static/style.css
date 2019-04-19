@@ -48,6 +48,10 @@ html, body {
   position: relative;
   top: 20%;
   left: -50%;
+  display: flex;
+  flex-direction: column;
+  justify-content: start;
+  font-family: "Courier New", Courier, monospace;
   padding: 30px 30px;
   box-sizing: border-box;
   border: 1px solid #888;
@@ -84,28 +88,23 @@ html, body {
 #popup .popup-content .popup-close:hover {
   border-color: #bbb;
 }
-#popup .popup-content.checklist-popup {
-  font-family: "Courier New", Courier, monospace;
-  display: flex;
-  flex-direction: column;
-  justify-content: start;
+#popup .popup-content .popup-header {
+  color: #444;
+  text-align: center;
+  font-size: 28px;
+  font-weight: 700;
+  white-space: nowrap;
+  padding: 4px 30px 10px;
+}
+#popup .popup-content .popup-header-line {
+  width: 100%;
+  height: 10px;
+  border-top: 1px solid #888;
 }
 #popup .popup-content.checklist-popup .checklist-greeting {
   color: #444;
   text-align: center;
   font-size: 18px;
-}
-#popup .popup-content.checklist-popup .checklist-date {
-  color: #444;
-  text-align: center;
-  font-size: 24px;
-  font-weight: 700;
-  padding: 4px 30px 10px;
-}
-#popup .popup-content.checklist-popup .checklist-line {
-  width: 100%;
-  height: 10px;
-  border-top: 1px solid #888;
 }
 #popup .popup-content.checklist-popup .checklist-container {
   padding: 0 30px;
@@ -153,6 +152,89 @@ html, body {
 }
 #popup .popup-content.checklist-popup .checklist-habit-entry .checklist-habit-name {
   padding-left: 12px;
+}
+#popup .popup-content.add-habit-popup .habit-name-input {
+  width: 300px;
+  box-sizing: border-box;
+  margin: 10px 30px;
+  padding: 8px 12px 4px;
+  text-align: center;
+  font-size: 18px;
+  font-family: "Courier New", Courier, monospace;
+  border: none;
+  border-bottom: 1px solid #bbb;
+}
+#popup .popup-content.add-habit-popup .habit-name-input:focus {
+  outline: none;
+}
+#popup .popup-content.add-habit-popup .habit-name-input::placeholder {
+  color: #bbb;
+}
+#popup .popup-content.add-habit-popup .habit-name-input::-webkit-input-placeholder {
+  color: #bbb;
+}
+#popup .popup-content.add-habit-popup .habit-name-input::-moz-placeholder {
+  color: #bbb;
+}
+#popup .popup-content.add-habit-popup .habit-name-input:-ms-input-placeholder {
+  color: #bbb;
+}
+#popup .popup-content.add-habit-popup .habit-name-input:-moz-placeholder {
+  color: #bbb;
+}
+#popup .popup-content.add-habit-popup .color-picker-container {
+  align-self: center;
+  width: 240px;
+  height: 240px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 16px 30px 16px;
+}
+#popup .popup-content.add-habit-popup .color-picker-row {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+}
+#popup .popup-content.add-habit-popup .color-picker-option {
+  width: 40px;
+  height: 40px;
+  border: 1px solid #bbb;
+  border-radius: 12px;
+  cursor: pointer;
+}
+#popup .popup-content.add-habit-popup .color-picker-option.option-unavailable {
+  cursor: initial;
+  opacity: 0.25;
+}
+#popup .popup-content.add-habit-popup .color-picker-option.selected:after {
+  content: "";
+  display: block;
+  background-color: #fff;
+  width: 10px;
+  height: 10px;
+  margin: 15px;
+  box-sizing: border-box;
+  border-radius: 10px;
+}
+#popup .popup-content.add-habit-popup .submit-button {
+  display: block;
+  text-align: center;
+  font-size: 18px;
+  margin: 16px 0 0;
+  padding: 10px 20px;
+  box-sizing: border-box;
+  border: 1px solid #888;
+  border-radius: 12px;
+  cursor: pointer;
+}
+#popup .popup-content.add-habit-popup .submit-button.inactive-button {
+  opacity: 0.25;
+  background-color: #bbb;
+}
+#popup .popup-content.add-habit-popup .submit-button:hover {
+  border: 1px solid #bbb;
 }
 
 /* SVG GENERAL CLASSES
