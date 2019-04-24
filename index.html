@@ -927,6 +927,10 @@
 				this.habit_tracker = new HabitTracker();
 				this.calendar = new Calendar(this.habit_tracker);
 
+				// Calendar size constants
+				this.cal_width = 1050;
+				this.cal_height = 800;
+
 				// Debounced call to save
 				this.debounced_save = $.debounce(1000, this.save);
 
@@ -979,11 +983,11 @@
 			}
 			/* ------------------ */
 
-			generate_site(cal_width, cal_height) {
+			generate_site() {
 				// Timing 
 				let time_start = Date.now();
 
-				let gen = new SvgGenerator('calendar', cal_width, cal_height);
+				let gen = new SvgGenerator('calendar', this.cal_width, this.cal_height);
 
 				gen.new_layer(null, 10, 120);
 					this.calendar.generate_calendar(gen);
@@ -995,7 +999,7 @@
 				gen.flush();
 
 				// Resize calendar
-				this.resize_calendar(gen.svg, cal_width, cal_height);
+				this.resize_calendar(gen.svg);
 
 				let container = $('#calendarContainer');
 				// Get old calendar svg if it exists
@@ -1013,7 +1017,7 @@
 				console.log(`Calendar rendered in: ${time_to_process}s`);
 			}
 
-			resize_calendar(cal_svg, cal_width, cal_height) {
+			resize_calendar(cal_svg) {
 				// CONSTANTS
 				let max_width_ratio = 0.80;
 				let max_height_ratio = 0.80;
@@ -1022,8 +1026,8 @@
 				let screen_width = window.screen.width;
 				let screen_height = window.screen.height;
 
-				let width_ratio = cal_width / screen_width;
-				let height_ratio = cal_height / screen_height;
+				let width_ratio = this.cal_width / screen_width;
+				let height_ratio = this.cal_height / screen_height;
 
 				let width_resize_coeff = max_width_ratio / width_ratio;
 				let height_resize_coeff = max_height_ratio / height_ratio;
@@ -1079,6 +1083,12 @@
 				// Stop this.date_checklist_popup_timer
 				$(window).blur((function() {
 					this.stop_intervals();
+				}).bind(this));
+
+				// Close-popup on Esc press
+				$(document).keydown((function() {
+					if(event.which === 27)
+						this.close_popup();
 				}).bind(this));
 			}
 
@@ -1606,9 +1616,6 @@
 
 		var main = new Main(); // EXPOSED FOR TESTING
 		$(document).ready(function() {
-			let cal_width = 1050;
-			let cal_height = 800;
-
 			// let main = new Main();
 
 			main.load();
@@ -1618,7 +1625,7 @@
 			console.log('handlers initiated');
 			main.set_intervals();
 			console.log('intervals set');
-			main.generate_site(cal_width, cal_height);
+			main.generate_site(this.cal_width, this.cal_height);
 		});
 	</script>
 </body>
