@@ -25,6 +25,7 @@ html, body {
   right: 0;
   bottom: 0;
   margin: auto;
+  transform-origin: center center;
 }
 
 /* POPUP STYLING

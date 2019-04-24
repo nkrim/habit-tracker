@@ -31,7 +31,7 @@
 			let cookie_obj = {};
 			let cookie_strings = document.cookie.split(';');
 			let re = /\s*(.+)=(.*)/;
-			for(let i=0; i<cookie_strings.length; i+=1) {
+			for(let i=0; i<cookie_strings.length; i++) {
 				let str = cookie_strings[i];
 				let match = re.exec(str);
 				if(match) {
@@ -426,7 +426,7 @@
 				let year_keys = Object.keys(this.tracker).sort().reverse().slice(0,max_years);
 				// Serialize the years
 				let serialized_tracker = {};
-				for(let i=0; i<year_keys.length; i+=1) {
+				for(let i=0; i<year_keys.length; i++) {
 					let year_key = year_keys[i];
 					let serialized_year_key = `y${year_key}`;
 					serialized_tracker[serialized_year_key] = this.serialize_year_entry(this.tracker[year_key]);
@@ -696,7 +696,7 @@
 								let date_key = `${this.month < 10 ? '0'+this.month : this.month}-${cur_date < 10 ? '0'+cur_date : cur_date}`;
 								let date_entry = year_entry[date_key];
 								let slice_theta = 2*Math.PI/this.habit_tracker.num_habits;
-								for(let k=0; k<this.habit_tracker.num_habits; k+=1) {
+								for(let k=0; k<this.habit_tracker.num_habits; k++) {
 									let habit_color = this.habit_tracker.habits[k].color;
 									gen.add_slice(null, 0, 0, date_radius-0.5, k*slice_theta, slice_theta, 
 										{'fill': habit_color, 'class': `date-slice ${date_entry & (1<<k) ? 'date-slice-active' : ''}`});
@@ -756,7 +756,7 @@
 				// Generate slices and habit text and line
 				if(this.habit_tracker.num_habits) {
 					let slice_theta = 2*Math.PI/this.habit_tracker.num_habits;
-					for(let k=0; k<this.habit_tracker.num_habits; k+=1) {
+					for(let k=0; k<this.habit_tracker.num_habits; k++) {
 						let habit = this.habit_tracker.habits[k]
 						// New layer for slice
 						gen.new_layer('habitViewerHabit', 0, 0);
@@ -764,9 +764,9 @@
 						gen.add_slice('habitSlice', 0, 0, viewer_radius-0.5, k*slice_theta, slice_theta, 
 							{'fill': habit.color});
 						// Generate text
-						gen.new_layer(`habitText${k}`, 0, 0, {'class': 'habit-text'});
+						/*gen.new_layer(`habitText${k}`, 0, 0, {'class': 'habit-text'});
 						gen.add_text(null, habit_text_x, habit_text_y, habit.name, 
-							{'text-anchor': 'end', 'fill': stroke_and_text});
+							{'text-anchor': 'end', 'fill': stroke_and_text});*/
 						// Generate line under text
 						let slice_point_angle = (k*slice_theta) + (slice_theta/2);
 						let slice_point_x = 0;
@@ -776,7 +776,7 @@
 							slice_point_x = habit_focus_circle_radius_coeff*viewer_radius*Math.sin(slice_point_angle);
 							slice_point_y = -habit_focus_circle_radius_coeff*viewer_radius*Math.cos(slice_point_angle);
 						}
-						let line_attrs = {
+						/*let line_attrs = {
 							'd': `M ${habit_text_x + habit_text_x_padding + gen._context.x - habit_text_length} ${habit_text_y + gen._context.y + habit_text_underline_padding} l ${habit_text_length} 0 L ${slice_point_x + gen._context.x} ${slice_point_y + gen._context.y}`,
 							'stroke': stroke_and_text,
 							'fill': 'transparent',
@@ -786,7 +786,7 @@
 						gen.add_circle(null, slice_point_x, slice_point_y, habit_focus_circle_radius, 
 							{'fill': habit.color, 'stroke': stroke_and_text, 'stroke-width': 1});
 						// End layer
-						gen.end_layer();
+						gen.end_layer();*/
 
 						// Generate small circle for end of line (always showing)
 						gen.add_circle(null, slice_point_x, slice_point_y, habit_focus_circle_radius, 
@@ -802,7 +802,7 @@
 					{'fill': 'transparent', 'stroke': stroke_and_text, 'stroke-width': 1});
 
 				// Generate use tags for habitText
-				for(let k=0; k<this.habit_tracker.num_habits-1; k+=1) {
+				for(let k=0; k<this.habit_tracker.num_habits-1; k++) {
 					gen.add_use(null, `habitText${k}`);
 				}
 
@@ -869,7 +869,7 @@
 					}
 				};
 				// Habits
-				for(let k=0; k<this.habit_tracker.num_habits; k+=1) {
+				for(let k=0; k<this.habit_tracker.num_habits; k++) {
 					let habit = this.habit_tracker.habits[k];
 					// New layer
 					let list_entry = gen.new_layer(null, 0, current_y, 
@@ -979,11 +979,11 @@
 			}
 			/* ------------------ */
 
-			generate_site() {
+			generate_site(cal_width, cal_height) {
 				// Timing 
 				let time_start = Date.now();
 
-				let gen = new SvgGenerator('calendar', 1050, 800);
+				let gen = new SvgGenerator('calendar', cal_width, cal_height);
 
 				gen.new_layer(null, 10, 120);
 					this.calendar.generate_calendar(gen);
@@ -993,6 +993,9 @@
 					gen.new_layer(null, 0, 100);
 						this.calendar.generate_habit_list(gen);
 				gen.flush();
+
+				// Resize calendar
+				this.resize_calendar(gen.svg, cal_width, cal_height);
 
 				let container = $('#calendarContainer');
 				// Get old calendar svg if it exists
@@ -1004,13 +1007,37 @@
 					old_calendar.remove();
 				}
 
-				// Set calendar handlers
-
 				// Timing
 				let time_end = Date.now();
 				let time_to_process = (time_end - time_start)/1000;
 				console.log(`Calendar rendered in: ${time_to_process}s`);
 			}
+
+			resize_calendar(cal_svg, cal_width, cal_height) {
+				// CONSTANTS
+				let max_width_ratio = 0.80;
+				let max_height_ratio = 0.80;
+				// ---------
+
+				let screen_width = window.screen.width;
+				let screen_height = window.screen.height;
+
+				let width_ratio = cal_width / screen_width;
+				let height_ratio = cal_height / screen_height;
+
+				let width_resize_coeff = max_width_ratio / width_ratio;
+				let height_resize_coeff = max_height_ratio / height_ratio;
+
+				let final_resize_coeff = 1.0;
+				if(width_resize_coeff < 1.0 && width_resize_coeff <= height_resize_coeff) {
+					final_resize_coeff = width_resize_coeff;
+				}
+				else if(height_resize_coeff < 1.0) {
+					final_resize_coeff = height_resize_coeff;
+				}
+
+				$(cal_svg).css('transform', `scale(${final_resize_coeff})`);
+			} 
 
 			initiate_handlers() {
 				/*// Focus resetting for container clicks (REMEMBER TO STOP PROPOGATION ON CLICK HANDLERS)
@@ -1289,7 +1316,7 @@
 				let checklist_container = document.createElement('div');
 				checklist_container.setAttribute('class', 'checklist-container');
 				let date_entry = this.habit_tracker.get_date_entry(calendar_date) || 0;
-				for(let k=0; k<this.habit_tracker.num_habits; k+=1) {
+				for(let k=0; k<this.habit_tracker.num_habits; k++) {
 					let habit = this.habit_tracker.habits[k];
 					let habit_active = date_entry & (1<<k);
 
@@ -1378,11 +1405,11 @@
 				let color_picker_container = document.createElement('div');
 				color_picker_container.setAttribute('class', 'color-picker-container');
 				// Color picker rows
-				for(let i=0; i<4; i+=1) {
+				for(let i=0; i<4; i++) {
 					let color_picker_row = document.createElement('div');
 					color_picker_row.setAttribute('class', 'color-picker-row');
 					// Color picker option
-					for(let j=0; j<4; j+=1) {
+					for(let j=0; j<4; j++) {
 						let color_picker_option = document.createElement('div');
 						color_picker_option.setAttribute('class', 'color-picker-option');
 						let color_index = 4*i + j;
@@ -1392,7 +1419,7 @@
 							color_picker_option.setAttribute('color-value', option_color);
 							$(color_picker_option).click(selection_handler);
 							// Determine if the color is available
-							for(let k=0; k<this.habit_tracker.num_habits; k+=1) {
+							for(let k=0; k<this.habit_tracker.num_habits; k++) {
 								let habit_color = this.habit_tracker.habits[k].color;
 								if(habit_color === option_color) {
 									$(color_picker_option).addClass('option-unavailable');
@@ -1494,11 +1521,11 @@
 				let color_picker_container = document.createElement('div');
 				color_picker_container.setAttribute('class', 'color-picker-container');
 				// Color picker rows
-				for(let i=0; i<4; i+=1) {
+				for(let i=0; i<4; i++) {
 					let color_picker_row = document.createElement('div');
 					color_picker_row.setAttribute('class', 'color-picker-row');
 					// Color picker option
-					for(let j=0; j<4; j+=1) {
+					for(let j=0; j<4; j++) {
 						let color_picker_option = document.createElement('div');
 						color_picker_option.setAttribute('class', 'color-picker-option');
 						let color_index = 4*i + j;
@@ -1508,7 +1535,7 @@
 							color_picker_option.setAttribute('color-value', option_color);
 							$(color_picker_option).click(selection_handler);
 							// Determine if the color is available
-							for(let k=0; k<this.habit_tracker.num_habits; k+=1) {
+							for(let k=0; k<this.habit_tracker.num_habits; k++) {
 								let habit_color = this.habit_tracker.habits[k].color;
 								if(habit_color === option_color) {
 									// If k is habit_index, then set it is selected instead
@@ -1579,6 +1606,9 @@
 
 		var main = new Main(); // EXPOSED FOR TESTING
 		$(document).ready(function() {
+			let cal_width = 1050;
+			let cal_height = 800;
+
 			// let main = new Main();
 
 			main.load();
@@ -1588,7 +1618,7 @@
 			console.log('handlers initiated');
 			main.set_intervals();
 			console.log('intervals set');
-			main.generate_site();
+			main.generate_site(cal_width, cal_height);
 		});
 	</script>
 </body>
