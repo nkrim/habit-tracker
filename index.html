@@ -839,10 +839,43 @@
 				gen.new_layer('habitList', 0, header_height + header_underline_padding + entry_margin);
 				let current_y = 0;
 
+				// Habit edit handler generator
+				let habit_edit_handler_gen = function(habit_index) {
+					return function() {
+						$(document).trigger('calendar:edit_habit', habit_index);
+					}
+				};
+				// Habits
+				for(let k=0; k<this.habit_tracker.num_habits; k++) {
+					let habit = this.habit_tracker.habits[k];
+					// New layer
+					let list_entry = gen.new_layer(null, 0, current_y, 
+						{'class': 'habit-list-entry'});
+					$(list_entry).click(habit_edit_handler_gen(k));
+					// Background rect (for pointer-events)
+					gen.add_rect(null, 0, 0, list_width, entry_height,
+						{'fill': 'transparent'});
+					// Underline
+					/*gen.add_line(null, entry_border_radius, entry_height-1, list_width, entry_height,
+						{'style': `stroke: ${habit.color};`});*/
+					gen.add_line(null, entry_border_radius, entry_height, list_width, entry_height);
+					// Color rect
+					gen.add_rect(null, 0, 0, entry_height, entry_height, 
+						{'class': 'habit-color-rect', 'fill': habit.color, 'rx': entry_border_radius, 'ry': entry_border_radius,});
+					// Habit name
+					gen.add_text(null, entry_height + entry_padding, half_entry_height, habit.name,
+						{'class': 'text-vert-central',});
+					// End layer
+					gen.end_layer();
+
+					// Increment current_y
+					current_y += entry_height + entry_margin;
+				}
+
 				// Add habit button 
 				if(this.habit_tracker.num_habits < max_habits) {
 					// New layer
-					let add_habit_button = gen.new_layer('addHabitButton', 0, 0);
+					let add_habit_button = gen.new_layer('addHabitButton', 0, current_y);
 					// Button rect
 					gen.add_rect(null, 0, 0, list_width, entry_height, 
 						{'class': 'hover-show', 'rx': entry_border_radius, 'ry': entry_border_radius,});
@@ -859,37 +892,6 @@
 					$(add_habit_button).click(function() {
 						$(document).trigger('calendar:add_habit');
 					});
-				}
-
-
-				// Habit edit handler generator
-				let habit_edit_handler_gen = function(habit_index) {
-					return function() {
-						$(document).trigger('calendar:edit_habit', habit_index);
-					}
-				};
-				// Habits
-				for(let k=0; k<this.habit_tracker.num_habits; k++) {
-					let habit = this.habit_tracker.habits[k];
-					// New layer
-					let list_entry = gen.new_layer(null, 0, current_y, 
-						{'class': 'habit-list-entry'});
-					$(list_entry).click(habit_edit_handler_gen(k));
-					// Underline
-					/*gen.add_line(null, entry_border_radius, entry_height-1, list_width, entry_height,
-						{'style': `stroke: ${habit.color};`});*/
-					gen.add_line(null, entry_border_radius, entry_height, list_width, entry_height);
-					// Color rect
-					gen.add_rect(null, 0, 0, entry_height, entry_height, 
-						{'fill': habit.color, 'rx': entry_border_radius, 'ry': entry_border_radius,});
-					// Habit name
-					gen.add_text(null, entry_height + entry_padding, half_entry_height, habit.name,
-						{'class': 'text-vert-central',});
-					// End layer
-					gen.end_layer();
-
-					// Increment current_y
-					current_y += entry_height + entry_margin;
 				}
 			}
 		}
@@ -998,6 +1000,8 @@
 						this.calendar.generate_habit_list(gen);
 				gen.flush();
 
+				// Center calendar
+				$(gen.svg).css('margin', `-${this.cal_height/2}px 0 0 -${this.cal_width/2}px`);
 				// Resize calendar
 				this.resize_calendar(gen.svg);
 
@@ -1019,12 +1023,13 @@
 
 			resize_calendar(cal_svg) {
 				// CONSTANTS
-				let max_width_ratio = 0.80;
-				let max_height_ratio = 0.80;
+				let max_width_ratio = 0.95;
+				let max_height_ratio = 0.95;
 				// ---------
 
-				let screen_width = window.screen.width;
-				let screen_height = window.screen.height;
+				// Get ratio between screen dimensions and calendar dimensions
+				let screen_width = $(window).width();
+				let screen_height = $(window).height();
 
 				let width_ratio = this.cal_width / screen_width;
 				let height_ratio = this.cal_height / screen_height;
@@ -1032,6 +1037,7 @@
 				let width_resize_coeff = max_width_ratio / width_ratio;
 				let height_resize_coeff = max_height_ratio / height_ratio;
 
+				// Whichever scaling value is lower (more effectual), use that (or neither if both are >=1.0)
 				let final_resize_coeff = 1.0;
 				if(width_resize_coeff < 1.0 && width_resize_coeff <= height_resize_coeff) {
 					final_resize_coeff = width_resize_coeff;
@@ -1040,6 +1046,7 @@
 					final_resize_coeff = height_resize_coeff;
 				}
 
+				// Apply transform
 				$(cal_svg).css('transform', `scale(${final_resize_coeff})`);
 			} 
 
@@ -1089,6 +1096,11 @@
 				$(document).keydown((function() {
 					if(event.which === 27)
 						this.close_popup();
+				}).bind(this));
+
+				// Window resize handler
+				$(window).resize((function() {
+									this.resize_calendar($('#calendar'));
 				}).bind(this));
 			}
 
