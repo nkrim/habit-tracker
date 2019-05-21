@@ -17,6 +17,7 @@
 <body>
 
 	<div id="calendarContainer">
+		<canvas id="graphics" width="720" height="405"></canvas>
 		<div id="popup">
 			
 		</div>
@@ -943,7 +944,7 @@
 
 				// Settings
 				this.settings = {
-					'auto_checklist_time': 1633,// Default to 7pm
+					'auto_checklist_time': 1900,// Default to 7pm
 				};
 
 				// Aync timing vars
@@ -1322,6 +1323,12 @@
 						let target = e.currentTarget;
 						let is_active = $(target).hasClass('entry-active');
 						// If active, remove the tracked habit and then remove entry-active class
+						console.log('');
+						console.log(`target:`);
+						console.log(target);
+						console.log(`habit_index: ${habit_index}`);
+						console.log(`date: ${calendar_date}`);
+						console.log(`is_active (before_click): ${is_active}`);
 						if(is_active) {
 							this.habit_tracker.remove_tracked_habit(calendar_date.getFullYear(), calendar_date.getMonth(), calendar_date.getDate(), habit_index, this.calendar);
 							$(target).removeClass('entry-active');
@@ -1640,5 +1647,10 @@
 			main.generate_site(this.cal_width, this.cal_height);
 		});
 	</script>
+
+
+	<!-- GRAPHICS -->
+	<script src="./static/js/gl-matrix-min.js"></script>
+	<script src="./static/js/tetrahedron.js"></script>
 </body>
 </html>

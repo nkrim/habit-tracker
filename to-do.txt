@@ -1,8 +1,7 @@
 - Habit viewer
-	- Make list editable
+	- Make list order editable
 	- Adjust view-circle hovering postions
 	- Get statistics (once statistics are ready) 
-- Properly scale calendar
 - Settings menu
 
 - BG Visuals

@@ -26,6 +26,12 @@ html, body {
   transform-origin: center center;
 }
 
+#graphics {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+}
+
 /* POPUP STYLING
 ================ */
 #popup {
