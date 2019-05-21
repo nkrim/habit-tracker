@@ -55,6 +55,14 @@ const indices = [
 	21, 22, 23,
 ];
 
+// Rot interaction vars
+let prev_mouse_pos = null;
+let prev_mosue_time = null;
+
+let rot_change_coeff = 0.001;
+let rot_horiz = 0.5;
+let rot_vert = 0.3;
+
 $(document).ready(function() {
 	const canvas = document.querySelector("#graphics");
 	const gl = canvas.getContext("webgl", {
@@ -108,7 +116,7 @@ $(document).ready(function() {
 			lowp vec3 normal = normalize(vNormal);
 
 			lowp vec3 ambient_light = normalize(vec3(2.0, -2.0, -10.0));
-			lowp vec3 light_1 = normalize(-1.5*vec3(2.0, -3.0, -5.0) - vPos);
+			lowp vec3 light_1 = normalize(-1.5*vec3(2.0, -4.0, -5.0) - vPos);
 			lowp vec3 light_2 = normalize(-1.5*vec3(-2.0, 8.0, 0.0) - vPos);
 
 			lowp float diffuse_1_i = 1.0 * (clamp(dot(light_1, normal), 0.0, 1.0) - 0.0);
@@ -120,7 +128,6 @@ $(document).ready(function() {
 			lowp vec3 colorGammaCorrected = pow(final_col, vec3(1.0/screenGamma));
 
 		  	gl_FragColor = vec4(colorGammaCorrected, diffuse_1_i+diffuse_2_i);
-		  	//gl_FragColor.rgb *= gl_FragColor.a;
 		}
 	`;
 
@@ -178,212 +185,222 @@ $(document).ready(function() {
 		window.requestAnimationFrame(render);
 	}
 	window.requestAnimationFrame(render);
+
+	// Initialize handler for mouse movement for rotation interaction
+	$(document).mousemove(handle_rot_mouse_move);
 });
 
 function initBuffers(gl) {
-// Create a buffer for the cube's vertex positions.
-const positionBuffer = gl.createBuffer();
+	// Create a buffer for the cube's vertex positions.
+	const positionBuffer = gl.createBuffer();
 
-// Select the positionBuffer as the one to apply buffer
-// operations to from here out.
-gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
+	// Select the positionBuffer as the one to apply buffer
+	// operations to from here out.
+	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
 
-// Now pass the list of positions into WebGL to build the
-// shape. We do this by creating a Float32Array from the
-// JavaScript array, then use it to fill the current buffer.
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-
-
-// Init normal buffer
-const normalBuffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
+	// Now pass the list of positions into WebGL to build the
+	// shape. We do this by creating a Float32Array from the
+	// JavaScript array, then use it to fill the current buffer.
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
 
 
-// Now set up the colors for the faces. We'll use solid colors
-// for each face.
-const faceColors = [
-	[1.0,  1.0,  1.0,  1.0],    // Front face: white
-	[1.0,  0.0,  0.0,  1.0],    // Back face: red
-	[0.0,  1.0,  0.0,  1.0],    // Top face: green
-	[0.0,  0.0,  1.0,  1.0],    // Bottom face: blue
-	[1.0,  1.0,  0.0,  1.0],    // Right face: yellow
-	[1.0,  0.0,  1.0,  1.0],    // Left face: purple
-	[1.0,  1.0,  0.0,  1.0],    // Right face: yellow
-	[1.0,  0.0,  1.0,  1.0],    // Left face: purple
-];
+	// Init normal buffer
+	const normalBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(normals), gl.STATIC_DRAW);
 
-// Convert the array of colors into a table for all the vertices.
-var colors = [];
 
-for (var j = 0; j < faceColors.length; ++j) {
-	const c = faceColors[j];
+	// Now set up the colors for the faces. We'll use solid colors
+	// for each face.
+	const faceColors = [
+		[1.0,  1.0,  1.0,  1.0],    // Front face: white
+		[1.0,  0.0,  0.0,  1.0],    // Back face: red
+		[0.0,  1.0,  0.0,  1.0],    // Top face: green
+		[0.0,  0.0,  1.0,  1.0],    // Bottom face: blue
+		[1.0,  1.0,  0.0,  1.0],    // Right face: yellow
+		[1.0,  0.0,  1.0,  1.0],    // Left face: purple
+		[1.0,  1.0,  0.0,  1.0],    // Right face: yellow
+		[1.0,  0.0,  1.0,  1.0],    // Left face: purple
+	];
 
-	// Repeat each color four times for the four vertices of the face
-	colors = colors.concat(c, c, c);
-}
+	// Convert the array of colors into a table for all the vertices.
+	var colors = [];
 
-const colorBuffer = gl.createBuffer();
-gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
+	for (var j = 0; j < faceColors.length; ++j) {
+		const c = faceColors[j];
 
-// Build the element array buffer; this specifies the indices
-// into the vertex arrays for each face's vertices.
-
-const indexBuffer = gl.createBuffer();
-gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-
-// Now send the element array to GL
-
-gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,
-  new Uint16Array(indices), gl.STATIC_DRAW);
-
-return {
-	position: positionBuffer,
-	normal: normalBuffer,
-	color: colorBuffer,
-	indices: indexBuffer,
-};
-}
-
-//
-// Draw the scene.
-//
-function drawScene(gl, programInfo, buffers, deltaTime) {
-gl.clearColor(1.0, 1.0, 1.0, 0.0);  // Clear to black, fully opaque
-gl.clearDepth(1.0);                 // Clear everything
-gl.disable(gl.BLEND);
-gl.enable(gl.DEPTH_TEST);           // Enable depth testing
-gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
-
-gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); // For premultiplied alpha being false
-
-// Clear the canvas before we start drawing on it.
-gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-// Create a perspective matrix, a special matrix that is
-// used to simulate the distortion of perspective in a camera.
-// Our field of view is 45 degrees, with a width/height
-// ratio that matches the display size of the canvas
-// and we only want to see objects between 0.1 units
-// and 100 units away from the camera.
-const fieldOfView = 45 * Math.PI / 180;   // in radians
-const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-const zNear = 0.1;
-const zFar = 100.0;
-const projectionMatrix = glMatrix.mat4.create();
-
-// note: glmatrix.js always has the first argument
-// as the destination to receive the result.
-glMatrix.mat4.perspective(projectionMatrix,
-				fieldOfView,
-				aspect,
-				zNear,
-				zFar);
-
-// Set the drawing position to the "identity" point, which is
-// the center of the scene.
-const modelViewMatrix = glMatrix.mat4.create();
-
-// Now move the drawing position a bit to where we want to
-// start drawing the square.
-glMatrix.mat4.translate(modelViewMatrix,     // destination matrix
-             modelViewMatrix,     // matrix to translate
-             [-0.0, 0.0, -5.0]);  // amount to translate
-glMatrix.mat4.rotate(modelViewMatrix,  // destination matrix
-          modelViewMatrix,  // matrix to rotate
-          cubeRotation,     // amount to rotate in radians
-          [0, 0, 1]);       // axis to rotate around (Z)
-glMatrix.mat4.rotate(modelViewMatrix,  // destination matrix
-          modelViewMatrix,  // matrix to rotate
-          cubeRotation * .7,// amount to rotate in radians
-          [0, 1, 0]);       // axis to rotate around (X)
-
-// Tell WebGL how to pull out the positions from the position
-// buffer into the vertexPosition attribute
-{
-	const numComponents = 3;
-	const type = gl.FLOAT;
-	const normalize = false;
-	const stride = 0;
-	const offset = 0;
-	gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
-	gl.vertexAttribPointer(
-	    programInfo.attribLocations.vertexPosition,
-	    numComponents,
-	    type,
-	    normalize,
-	    stride,
-	    offset);
-	gl.enableVertexAttribArray(
-	    programInfo.attribLocations.vertexPosition);
-}
-
-// Normal buffer attribute info
-{
-	const numComponents = 3;
-	const type = gl.FLOAT;
-	const normalize = false;
-	const stride = 0;
-	const offset = 0;
-	gl.bindBuffer(gl.ARRAY_BUFFER, buffers.normal);
-	gl.vertexAttribPointer(
-	    programInfo.attribLocations.normalPosition,
-	    numComponents,
-	    type,
-	    normalize,
-	    stride,
-	    offset);
-	gl.enableVertexAttribArray(
-	    programInfo.attribLocations.normalPosition);
-}
-
-// Tell WebGL how to pull out the colors from the color buffer
-// into the vertexColor attribute.
-{
-	const numComponents = 4;
-	const type = gl.FLOAT;
-	const normalize = false;
-	const stride = 0;
-	const offset = 0;
-	gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
-	gl.vertexAttribPointer(
-	    programInfo.attribLocations.vertexColor,
-	    numComponents,
-	    type,
-	    normalize,
-	    stride,
-	    offset);
-	gl.enableVertexAttribArray(
-	    programInfo.attribLocations.vertexColor);
+		// Repeat each color four times for the four vertices of the face
+		colors = colors.concat(c, c, c);
 	}
 
-// Tell WebGL which indices to use to index the vertices
-gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
+	const colorBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(colors), gl.STATIC_DRAW);
 
-// Tell WebGL to use our program when drawing
-gl.useProgram(programInfo.program);
+	// Build the element array buffer; this specifies the indices
+	// into the vertex arrays for each face's vertices.
 
-// Set the shader uniforms
-gl.uniformMatrix4fv(
-	  programInfo.uniformLocations.projectionMatrix,
-	  false,
-	  projectionMatrix);
-gl.uniformMatrix4fv(
-	  programInfo.uniformLocations.modelViewMatrix,
-	  false,
-	  modelViewMatrix);
+	const indexBuffer = gl.createBuffer();
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
-{
-	const vertexCount = 24;
-	const type = gl.UNSIGNED_SHORT;
-	const offset = 0;
-	gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
-}
+	// Now send the element array to GL
 
-// Update the rotation for the next draw
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,
+	  new Uint16Array(indices), gl.STATIC_DRAW);
 
-cubeRotation += deltaTime;
+	return {
+		position: positionBuffer,
+		normal: normalBuffer,
+		color: colorBuffer,
+		indices: indexBuffer,
+	};
+	}
+
+	//
+	// Draw the scene.
+	//
+	function drawScene(gl, programInfo, buffers, deltaTime) {
+	gl.clearColor(1.0, 1.0, 1.0, 0.0);  // Clear to black, fully opaque
+	gl.clearDepth(1.0);                 // Clear everything
+	gl.disable(gl.BLEND);
+	gl.enable(gl.DEPTH_TEST);           // Enable depth testing
+	gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
+
+	gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); // For premultiplied alpha being false
+
+	// Clear the canvas before we start drawing on it.
+	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+	// Create a perspective matrix, a special matrix that is
+	// used to simulate the distortion of perspective in a camera.
+	// Our field of view is 45 degrees, with a width/height
+	// ratio that matches the display size of the canvas
+	// and we only want to see objects between 0.1 units
+	// and 100 units away from the camera.
+	const fieldOfView = 45 * Math.PI / 180;   // in radians
+	const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
+	const zNear = 0.1;
+	const zFar = 100.0;
+	const projectionMatrix = glMatrix.mat4.create();
+
+	// note: glmatrix.js always has the first argument
+	// as the destination to receive the result.
+	glMatrix.mat4.perspective(projectionMatrix,
+					fieldOfView,
+					aspect,
+					zNear,
+					zFar);
+
+	// Set the drawing position to the "identity" point, which is
+	// the center of the scene.
+	const modelViewMatrix = glMatrix.mat4.create();
+
+	let spin_axis = glMatrix.vec3.fromValues(-rot_vert, rot_horiz, 0);
+	glMatrix.vec3.normalize(spin_axis, spin_axis);
+
+	// Now move the drawing position a bit to where we want to
+	// start drawing the square.
+	glMatrix.mat4.translate(modelViewMatrix,     // destination matrix
+	             modelViewMatrix,     // matrix to translate
+	             [-0.0, 0.0, -5.0]);  // amount to translate
+	glMatrix.mat4.rotate(modelViewMatrix,  // destination matrix
+	          modelViewMatrix,  // matrix to rotate
+	          cubeRotation * (rot_horiz+rot_vert),     // amount to rotate in radians
+	          Array.from(spin_axis));       // axis to rotate around (Z)
+	/*glMatrix.mat4.rotate(modelViewMatrix,  // destination matrix
+	          modelViewMatrix,  // matrix to rotate
+	          cubeRotation * rot_horiz,     // amount to rotate in radians
+	          [0, 0, 1]);       // axis to rotate around (Z)
+	glMatrix.mat4.rotate(modelViewMatrix,  // destination matrix
+	          modelViewMatrix,  // matrix to rotate
+	          cubeRotation * rot_vert,// amount to rotate in radians
+	          [0, 1, 0]);       // axis to rotate around (X)*/
+
+	// Tell WebGL how to pull out the positions from the position
+	// buffer into the vertexPosition attribute
+	{
+		const numComponents = 3;
+		const type = gl.FLOAT;
+		const normalize = false;
+		const stride = 0;
+		const offset = 0;
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
+		gl.vertexAttribPointer(
+		    programInfo.attribLocations.vertexPosition,
+		    numComponents,
+		    type,
+		    normalize,
+		    stride,
+		    offset);
+		gl.enableVertexAttribArray(
+		    programInfo.attribLocations.vertexPosition);
+	}
+
+	// Normal buffer attribute info
+	{
+		const numComponents = 3;
+		const type = gl.FLOAT;
+		const normalize = false;
+		const stride = 0;
+		const offset = 0;
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.normal);
+		gl.vertexAttribPointer(
+		    programInfo.attribLocations.normalPosition,
+		    numComponents,
+		    type,
+		    normalize,
+		    stride,
+		    offset);
+		gl.enableVertexAttribArray(
+		    programInfo.attribLocations.normalPosition);
+	}
+
+	// Tell WebGL how to pull out the colors from the color buffer
+	// into the vertexColor attribute.
+	{
+		const numComponents = 4;
+		const type = gl.FLOAT;
+		const normalize = false;
+		const stride = 0;
+		const offset = 0;
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+		gl.vertexAttribPointer(
+		    programInfo.attribLocations.vertexColor,
+		    numComponents,
+		    type,
+		    normalize,
+		    stride,
+		    offset);
+		gl.enableVertexAttribArray(
+		    programInfo.attribLocations.vertexColor);
+		}
+
+	// Tell WebGL which indices to use to index the vertices
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
+
+	// Tell WebGL to use our program when drawing
+	gl.useProgram(programInfo.program);
+
+	// Set the shader uniforms
+	gl.uniformMatrix4fv(
+		  programInfo.uniformLocations.projectionMatrix,
+		  false,
+		  projectionMatrix);
+	gl.uniformMatrix4fv(
+		  programInfo.uniformLocations.modelViewMatrix,
+		  false,
+		  modelViewMatrix);
+
+	{
+		const vertexCount = 24;
+		const type = gl.UNSIGNED_SHORT;
+		const offset = 0;
+		gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+	}
+
+	// Update the rotation for the next draw
+
+	cubeRotation += deltaTime;
 }
 
 //
@@ -429,4 +446,47 @@ function loadShader(gl, type, source) {
 	}
 
 	return shader;
+}
+
+// Handle cube rot based on mouse movements
+function handle_rot_mouse_move(e) {
+	let cur_mouse_time = Date.now();
+
+	// Get mouse position
+	e = e || window.event;
+
+    var cur_x = e.pageX;
+    var cur_y = e.pageY;
+
+    // IE 8
+    if (cur_x === undefined) {
+        cur_x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+        cur_y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+    }
+
+    // Update buffers
+    if(prev_mouse_pos !== null && prev_mouse_time !== null) {
+    	let prev_x = prev_mouse_pos.x;
+    	let prev_y = prev_mouse_pos.y;
+    	let dt = cur_mouse_time - prev_mouse_time;
+    	let dx = cur_x - prev_x;
+    	let dy = cur_y - prev_y;
+    	// Square dx and dy to make faster movements more impactful
+    	let dx2 = Math.sign(dx) * Math.pow(dx, 2);
+    	let dy2 = Math.sign(dy) * Math.pow(dy, 2);
+
+    	let x_change = dx2/dt*rot_change_coeff;
+    	let y_change = dy2/dt*rot_change_coeff;
+    	
+    	// Change rot based on changes
+    	if(x_change)
+    		rot_horiz += Math.min(x_change, 0.5);
+    	if(y_change)
+    		rot_vert += Math.min(y_change, 0.5);
+    	console.log(rot_horiz)
+    }
+
+    // Set prevs
+    prev_mouse_pos = {x: cur_x, y: cur_y};
+    prev_mouse_time = cur_mouse_time;
 }

@@ -1,3 +1,6 @@
+DOING NEXT
+- WebGL Mouse Interaction
+
 - Habit viewer
 	- Make list order editable
 	- Adjust view-circle hovering postions
