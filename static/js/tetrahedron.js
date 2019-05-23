@@ -58,21 +58,21 @@ const indices = [
 
 // Rot interaction vars
 const velocity_degredation_time = 5;
+const max_velocity = 0.3;
+
+const rot_y = 0.5;
+const rot_z = 0.1;
 
 let prev_mouse_pos = null;
 let prev_mouse_time = null;
 
-const rot_z_init = 0.5;
-const rot_y_init = 0.3;
-let rot_z = rot_z_init;
-let rot_y = rot_y_init;
-
 let quat = glMatrix.quat.create();
 
-let prev_rot_quat = null;
+let velocity_axis = glMatrix.vec3.create();
 let velocity_init = 0.0;
 let velocity = 0.0;
-let velocity_axis = glMatrix.vec3.create();
+let prev_quat_buffer = [];
+let prev_quat_buffer_size = 3;
 
 let grabbed = false;
 
@@ -199,21 +199,35 @@ $(document).ready(function() {
 		velocity = 0.0;
 	});	
 	$('#graphics').bind('mouseup mouseleave', () => {
-		// Set angular velocity
-		if(prev_rot_quat !== null && prev_mouse_time !== null) {
-			let dt = Date.now() - prev_mouse_time + 0.001;
+		if(!grabbed)
+			return;
 
-			let rot_angle = glMatrix.quat.getAxisAngle(velocity_axis, prev_rot_quat);
-			velocity_init = rot_angle / dt;
+		// Set spinning velocity from prev_quat_buffer
+		if(prev_quat_buffer.length > 0) {
+			let size = Math.min(prev_quat_buffer.length, prev_quat_buffer_size);
+			// Get average of quaternions
+			let average_quat = glMatrix.quat.create();
+			for(let i=0; i<size; i++) {
+				let cur_quat = glMatrix.quat.clone(prev_quat_buffer[i]);
+				// If dot product of cur_quat and current sum is negative, negate the cur_quat
+				if(glMatrix.quat.dot(cur_quat, average_quat) < 0)
+					glMatrix.quat.scale(cur_quat, cur_quat, -1);
+				glMatrix.quat.add(average_quat, average_quat, cur_quat);
+			}
+			glMatrix.quat.normalize(average_quat, average_quat);
+			// Set velocity
+			let average_velocity = glMatrix.quat.getAxisAngle(velocity_axis, average_quat);
+			velocity_init = Math.min(average_velocity, max_velocity);
 			velocity = velocity_init;
 		}
+
 		// Reset grabbing vars
 		grabbed = false;
 		prev_mouse_pos = null;
 		prev_mouse_time = null;
-		prev_rot_quat = null;
+		prev_quat_buffer = [];
 	});
-	$('#graphics').mousemove(handle_rot_mouse_move);
+	$('#graphics').mousemove($.throttle(10, true, handle_rot_mouse_move));
 });
 
 function initBuffers(gl) {
@@ -300,7 +314,7 @@ function initBuffers(gl) {
 	             modelViewMatrix,     // matrix to translate
 	             [-0.0, 0.0, -5.0]);  // amount to translate
 
-	// Carry velocity rotation from last grab
+	// Apply velocity rotation from last grab
 	if(velocity > 0) {
 		let vel_quat = glMatrix.quat.create();
 		glMatrix.quat.setAxisAngle(vel_quat, velocity_axis, velocity);
@@ -309,10 +323,12 @@ function initBuffers(gl) {
 		velocity = velocity - (velocity_init*deltaTime/velocity_degredation_time);
 	}
 
-	// Multiply passive rotation (into world space)
+	// Apply passive rotation (into world space)
 	if(!grabbed) {
 		// Get coefficient based on lerp of current velocity from initial velocity
 		let passive_rot_coefficient = velocity_init > 0 ? (velocity_init - velocity) / velocity_init : 1.0;
+		if(passive_rot_coefficient < 0) passive_rot_coefficient = 0.0;
+		else if(passive_rot_coefficient > 1) passive_rot_coefficient = 1.0;
 
 		// Perform rotation
 		let passive_quat = glMatrix.quat.create();
@@ -325,7 +341,7 @@ function initBuffers(gl) {
 		glMatrix.quat.mul(quat, passive_quat, quat);
 	}
 
-	// Multiply into modelview matrix
+	// Apply rotation to modelview matrix
 	let rot = glMatrix.mat4.create();
 	glMatrix.mat4.fromQuat(rot, quat);
 	glMatrix.mat4.mul(modelViewMatrix, 
@@ -452,6 +468,7 @@ function handle_rot_mouse_move(e) {
 		return;
 
 	let cur_mouse_time = Date.now();
+	let dt = Math.max(cur_mouse_time - prev_mouse_time, 0.001);
 
 	// Get mouse position
 	e = e || window.event;
@@ -465,11 +482,11 @@ function handle_rot_mouse_move(e) {
         cur_y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
     }
 
-    // Update buffers
+    // Update quaternion and velocity buffer
+    let rot_quat = null;
     if(prev_mouse_pos !== null && prev_mouse_time !== null) {
     	let prev_x = prev_mouse_pos.x;
     	let prev_y = prev_mouse_pos.y;
-    	let dt = cur_mouse_time - prev_mouse_time + 0.001;
     	let dx = cur_x - prev_x;
     	let dy = cur_y - prev_y;
 
@@ -479,12 +496,15 @@ function handle_rot_mouse_move(e) {
     	let y_change = dy/dt * rot_change_coeff;
     	
     	// Make world-space rotation on grabbed_quat
-    	let rot_quat = glMatrix.quat.create();
+    	rot_quat = glMatrix.quat.create();
     	glMatrix.quat.fromEuler(rot_quat, y_change || 0.0, x_change || 0.0, 0.0);
     	glMatrix.quat.mul(quat, rot_quat, quat);
 
-    	// Store rot_quat in prev_rot_quat
-    	prev_rot_quat = rot_quat;
+    	// Update quat buffer
+		prev_quat_buffer.push(rot_quat);
+		// Flush buffer of excess, but leave most recent one unread
+		while(prev_quat_buffer.length > prev_quat_buffer_size+1)
+			prev_quat_buffer.shift();
     }
 
     // Set prevs

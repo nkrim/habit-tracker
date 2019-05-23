@@ -33,12 +33,17 @@ html, body {
 	margin: auto;
 
 	transform-origin: center center;
+
+	pointer-events: none;
 }
 
 #graphics {
 	position: absolute;
 	right: 0;
 	bottom: 0;
+
+	cursor: move;
+	pointer-events: all;
 }
 
 
