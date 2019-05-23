@@ -60,7 +60,7 @@ const indices = [
 // const velocity_degredation_time = 5;
 const velocity_change_coeff = 0.005;
 const max_velocity = 0.3;
-const min_velocity = 0.01;
+const resting_velocity = 0.01;
 
 let prev_mouse_pos = null;
 let prev_mouse_time = null;
@@ -79,7 +79,7 @@ let velocity_axis = glMatrix.vec3.fromValues(0.0, 1.0, 0.0);
 	console.log(velocity_axis)
 }
 let velocity_init = 0.0;
-let velocity = min_velocity;
+let velocity = resting_velocity;
 let prev_quat_buffer = [];
 let prev_quat_buffer_size = 3;
 
@@ -329,11 +329,11 @@ function initBuffers(gl) {
 		glMatrix.quat.mul(quat, vel_quat, quat);
 	}
 	// Degrade velocity
-	// velocity = Math.max(min_velocity, velocity - (velocity_init*deltaTime/velocity_degredation_time));
-	if(velocity > min_velocity)
-		velocity = Math.max(min_velocity, velocity - (velocity*velocity_change_coeff));
-	else if(velocity < min_velocity)
-		velocity = Math.min(min_velocity, velocity + (velocity*velocity_change_coeff));
+	// velocity = Math.max(resting_velocity, velocity - (velocity_init*deltaTime/velocity_degredation_time));
+	if(velocity > resting_velocity)
+		velocity = Math.max(resting_velocity, velocity - (velocity*velocity_change_coeff));
+	else if(velocity < resting_velocity)
+		velocity = Math.min(resting_velocity, velocity + (velocity*velocity_change_coeff));
 
 
 	// Apply rotation to modelview matrix
