@@ -57,20 +57,29 @@ const indices = [
 ];
 
 // Rot interaction vars
-const velocity_degredation_time = 5;
+// const velocity_degredation_time = 5;
+const velocity_change_coeff = 0.005;
 const max_velocity = 0.3;
-
-const rot_y = 0.5;
-const rot_z = 0.1;
+const min_velocity = 0.01;
 
 let prev_mouse_pos = null;
 let prev_mouse_time = null;
 
 let quat = glMatrix.quat.create();
+{
+	glMatrix.quat.rotateZ(quat, quat, Math.PI/16);
+	// glMatrix.quat.rotateX(quat, quat, Math.PI/16);
+}
 
-let velocity_axis = glMatrix.vec3.create();
+let velocity_axis = glMatrix.vec3.fromValues(0.0, 1.0, 0.0); 
+{
+	let origin = glMatrix.vec3.create();
+	glMatrix.vec3.rotateZ(velocity_axis, velocity_axis, origin, Math.PI/16);
+	// glMatrix.vec3.rotateX(velocity_axis, velocity_axis, origin, Math.PI/16)
+	console.log(velocity_axis)
+}
 let velocity_init = 0.0;
-let velocity = 0.0;
+let velocity = min_velocity;
 let prev_quat_buffer = [];
 let prev_quat_buffer_size = 3;
 
@@ -123,8 +132,8 @@ $(document).ready(function() {
 		void main(void) {
 			lowp vec3 normal = normalize(vNormal);
 
-			lowp vec3 light_1 = normalize(-1.5*vec3(4.0, -4.0, -5.0) - vPos);
-			lowp vec3 light_2 = normalize(-1.5*vec3(-2.0, 8.0, 0.0) - vPos);
+			lowp vec3 light_1 = normalize(-1.25*vec3(2.0, -4.0, -5.0) - vPos);
+			lowp vec3 light_2 = normalize(-1.25*vec3(-2.0, 8.0, 0.0) - vPos);
 
 			lowp float diffuse_1_i = 1.0 * (clamp(dot(light_1, normal), 0.0, 1.0) - 0.0);
 			lowp float diffuse_2_i = 1.0 * (clamp(dot(light_2, normal), 0.0, 1.0) - 0.0);
@@ -177,7 +186,7 @@ $(document).ready(function() {
 
 	const buffers = initBuffers(gl);
 
-		let t_prev = 0;
+	let t_prev = 0;
 
 	// Render function
 	// Draw the scene repeatedly
@@ -195,8 +204,6 @@ $(document).ready(function() {
 	// Initialize handler for mouse movement for rotation interaction
 	$('#graphics').mousedown(() => {
 		grabbed = true;
-		// Reset angular_velocity
-		velocity = 0.0;
 	});	
 	$('#graphics').bind('mouseup mouseleave', () => {
 		if(!grabbed)
@@ -315,31 +322,19 @@ function initBuffers(gl) {
 	             [-0.0, 0.0, -5.0]);  // amount to translate
 
 	// Apply velocity rotation from last grab
-	if(velocity > 0) {
+	if(velocity > 0 && !grabbed) {
 		let vel_quat = glMatrix.quat.create();
 		glMatrix.quat.setAxisAngle(vel_quat, velocity_axis, velocity);
+		// console.log(vel_quat, velocity_axis, velocity);
 		glMatrix.quat.mul(quat, vel_quat, quat);
-		// Degrade velocity
-		velocity = velocity - (velocity_init*deltaTime/velocity_degredation_time);
 	}
+	// Degrade velocity
+	// velocity = Math.max(min_velocity, velocity - (velocity_init*deltaTime/velocity_degredation_time));
+	if(velocity > min_velocity)
+		velocity = Math.max(min_velocity, velocity - (velocity*velocity_change_coeff));
+	else if(velocity < min_velocity)
+		velocity = Math.min(min_velocity, velocity + (velocity*velocity_change_coeff));
 
-	// Apply passive rotation (into world space)
-	if(!grabbed) {
-		// Get coefficient based on lerp of current velocity from initial velocity
-		let passive_rot_coefficient = velocity_init > 0 ? (velocity_init - velocity) / velocity_init : 1.0;
-		if(passive_rot_coefficient < 0) passive_rot_coefficient = 0.0;
-		else if(passive_rot_coefficient > 1) passive_rot_coefficient = 1.0;
-
-		// Perform rotation
-		let passive_quat = glMatrix.quat.create();
-		glMatrix.quat.rotateZ(passive_quat,
-				passive_quat,
-				deltaTime * rot_z * passive_rot_coefficient);
-		glMatrix.quat.rotateY(passive_quat,
-				passive_quat,
-				deltaTime * rot_y * passive_rot_coefficient);
-		glMatrix.quat.mul(quat, passive_quat, quat);
-	}
 
 	// Apply rotation to modelview matrix
 	let rot = glMatrix.mat4.create();
