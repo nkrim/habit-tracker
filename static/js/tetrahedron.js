@@ -70,6 +70,7 @@ const indices = [
 const velocity_change_coeff = 0.005;
 const max_velocity = 0.3;
 const resting_velocity = 0.01;
+const minimum_velocity = 0.0002;
 
 let prev_mouse_pos = null;
 let prev_mouse_time = null;
@@ -212,6 +213,7 @@ $(document).ready(function() {
 	// Initialize handler for mouse movement for rotation interaction
 	$('#graphics').mousedown(() => {
 		grabbed = true;
+		velocity = 0.0;
 	});	
 	$('#graphics').bind('mouseup mouseleave', () => {
 		if(!grabbed)
@@ -330,7 +332,7 @@ function initBuffers(gl) {
 
 	// If velocity is stuck at 0, offset by small amount (because degrade function converges to 0 when velocity = 0)
 	if(velocity === 0) {
-		velocity = resting_velocity > 0 ? 0.0005 : -0.0005;
+		velocity = resting_velocity > 0 ? minimum_velocity : -minimum_velocity;
 	}
 	// Apply velocity rotation from last grab
 	if(velocity !== 0 && !grabbed) {
