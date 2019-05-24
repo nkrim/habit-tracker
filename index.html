@@ -1287,8 +1287,19 @@
 					return;
 				}
 
-				// If no focus_date, this is a compromised call, cancel out with a warning
-				let calendar_date = this.calendar.date_obj;
+				// Set the date to be manipulating
+				let calendar_date = null;
+				// If daily popup, manualy set to today or yesterday (depending on check_yesterday)
+				if(daily_popup) {
+					calendar_date = new Date(Date.now());
+					if(check_yesterday)
+						calendar_date.setDate(calendar_date.getDate() - 1);
+				}
+				// Else, use focus date
+				else {
+					calendar_datee = this.calendar.date_obj;
+				}
+				// If calendar_date is null, this is a compromised call, cancel out with a warning
 				if(calendar_date === null) {
 					console.warn('habit_checklist_popup: calendar_date is null, cannot determine which date to use!');
 					return;

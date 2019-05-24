@@ -1,5 +1,5 @@
 DOING NEXT
-- WebGL Mouse Interaction
+- FIX - reminder popup on next day focuses the previous date(?) which is correct, but changes the current date, which is wrong.
 
 - Habit viewer
 	- Make list order editable

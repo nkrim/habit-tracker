@@ -1,4 +1,13 @@
 "use strict";
+
+/* 
+	By Noah Krim
+	Foundation based off example code from mozilla webgl tutorial
+	https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Creating_3D_objects_using_WebGL
+	Model, shaders, and interactivity by Noah Krim
+*/
+
+
 var cubeRotation = 0.0;
 
 const positions = [
@@ -78,7 +87,6 @@ let velocity_axis = glMatrix.vec3.fromValues(0.0, 1.0, 0.0);
 	// glMatrix.vec3.rotateX(velocity_axis, velocity_axis, origin, Math.PI/16)
 	console.log(velocity_axis)
 }
-let velocity_init = 0.0;
 let velocity = resting_velocity;
 let prev_quat_buffer = [];
 let prev_quat_buffer_size = 3;
@@ -224,8 +232,7 @@ $(document).ready(function() {
 			glMatrix.quat.normalize(average_quat, average_quat);
 			// Set velocity
 			let average_velocity = glMatrix.quat.getAxisAngle(velocity_axis, average_quat);
-			velocity_init = Math.min(average_velocity, max_velocity);
-			velocity = velocity_init;
+			velocity = Math.min(average_velocity, max_velocity);
 		}
 
 		// Reset grabbing vars
@@ -321,15 +328,17 @@ function initBuffers(gl) {
 	             modelViewMatrix,     // matrix to translate
 	             [-0.0, 0.0, -5.0]);  // amount to translate
 
+	// If velocity is stuck at 0, offset by small amount (because degrade function converges to 0 when velocity = 0)
+	if(velocity === 0) {
+		velocity = resting_velocity > 0 ? 0.0005 : -0.0005;
+	}
 	// Apply velocity rotation from last grab
-	if(velocity > 0 && !grabbed) {
+	if(velocity !== 0 && !grabbed) {
 		let vel_quat = glMatrix.quat.create();
 		glMatrix.quat.setAxisAngle(vel_quat, velocity_axis, velocity);
-		// console.log(vel_quat, velocity_axis, velocity);
 		glMatrix.quat.mul(quat, vel_quat, quat);
 	}
 	// Degrade velocity
-	// velocity = Math.max(resting_velocity, velocity - (velocity_init*deltaTime/velocity_degredation_time));
 	if(velocity > resting_velocity)
 		velocity = Math.max(resting_velocity, velocity - (velocity*velocity_change_coeff));
 	else if(velocity < resting_velocity)
