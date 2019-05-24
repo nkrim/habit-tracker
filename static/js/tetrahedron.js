@@ -78,15 +78,12 @@ let prev_mouse_time = null;
 let quat = glMatrix.quat.create();
 {
 	glMatrix.quat.rotateZ(quat, quat, Math.PI/16);
-	// glMatrix.quat.rotateX(quat, quat, Math.PI/16);
 }
 
 let velocity_axis = glMatrix.vec3.fromValues(0.0, 1.0, 0.0); 
 {
 	let origin = glMatrix.vec3.create();
 	glMatrix.vec3.rotateZ(velocity_axis, velocity_axis, origin, Math.PI/16);
-	// glMatrix.vec3.rotateX(velocity_axis, velocity_axis, origin, Math.PI/16)
-	console.log(velocity_axis)
 }
 let velocity = resting_velocity;
 let prev_quat_buffer = [];
@@ -105,8 +102,8 @@ $(document).ready(function() {
 	    return;
 	}
 
-	// Set clear color to black, fully opaque
-	gl.clearColor(0.0, 0.0, 0.0, 1.0);
+	// Set clear color to transparent white (for blending)
+	gl.clearColor(1.0, 1.0, 1.0, 0.0);
 	// Clear the color buffer with specified clear color
 	gl.clear(gl.COLOR_BUFFER_BIT);
 
@@ -280,15 +277,14 @@ function initBuffers(gl) {
 		normal: normalBuffer,
 		indices: indexBuffer,
 	};
-	}
+}
 
-	//
-	// Draw the scene.
-	//
-	function drawScene(gl, programInfo, buffers, deltaTime) {
+//
+// Draw the scene.
+//
+function drawScene(gl, programInfo, buffers, deltaTime) {
 	gl.clearColor(1.0, 1.0, 1.0, 0.0);  // Clear to black, fully opaque
 	gl.clearDepth(1.0);                 // Clear everything
-	gl.disable(gl.BLEND);
 	gl.enable(gl.DEPTH_TEST);           // Enable depth testing
 	gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
 
@@ -321,9 +317,6 @@ function initBuffers(gl) {
 	// the center of the scene.
 	const modelViewMatrix = glMatrix.mat4.create();
 
-	// let spin_axis = glMatrix.vec3.fromValues(grabbed_y_change, grabbed_x_change, 0);
-	// glMatrix.vec3.normalize(spin_axis, spin_axis);
-
 	// Now move the drawing position a bit to where we want to
 	// start drawing the square.
 	glMatrix.mat4.translate(modelViewMatrix,     // destination matrix
@@ -354,7 +347,6 @@ function initBuffers(gl) {
 			modelViewMatrix, 
 			rot); 
 
-	// cur_quat = quat.clone();
 	// Tell WebGL how to pull out the positions from the position
 	// buffer into the vertexPosition attribute
 	{

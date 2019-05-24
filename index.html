@@ -34,14 +34,16 @@
 			let re = /\s*(.+)=(.*)/;
 			for(let i=0; i<cookie_strings.length; i++) {
 				let str = cookie_strings[i];
-				let match = re.exec(str);
-				if(match) {
-					let key = match[1];
-					let val = match[2];
-					cookie_obj[key] = decodeURIComponent(val);
-				}
-				else {
-					console.warn(`get_cookie_object: unable to parse cookie_string "${str}"`);
+				if(str !== '') {
+					let match = re.exec(str);
+					if(match) {
+						let key = match[1];
+						let val = match[2];
+						cookie_obj[key] = decodeURIComponent(val);
+					}
+					else {
+						console.warn(`get_cookie_object: unable to parse cookie_string "${str}"`);
+					}
 				}
 			}
 			return cookie_obj;
@@ -693,9 +695,9 @@
 								{'fill': background_color, 'stroke': 'transparent !important'});
 
 							// Determine slices to show from habit tracker
-							if(year_entry && this.habit_tracker.num_habits) {
+							if(this.habit_tracker.num_habits) {
 								let date_key = `${this.month < 10 ? '0'+this.month : this.month}-${cur_date < 10 ? '0'+cur_date : cur_date}`;
-								let date_entry = year_entry[date_key];
+								let date_entry = year_entry ? year_entry[date_key] : 0;
 								let slice_theta = 2*Math.PI/this.habit_tracker.num_habits;
 								for(let k=0; k<this.habit_tracker.num_habits; k++) {
 									let habit_color = this.habit_tracker.habits[k].color;
@@ -1297,7 +1299,7 @@
 				}
 				// Else, use focus date
 				else {
-					calendar_datee = this.calendar.date_obj;
+					calendar_date = this.calendar.date_obj;
 				}
 				// If calendar_date is null, this is a compromised call, cancel out with a warning
 				if(calendar_date === null) {
