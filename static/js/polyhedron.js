@@ -7,10 +7,8 @@
 	Model, shaders, and interactivity by Noah Krim
 */
 
-
-var cubeRotation = 0.0;
-
-const positions = [
+// Octahedron
+const octa_positions = [
 	 // Top front
 	 0.0,  1.4,  0.0, 
 	-1.0,  0.0,  1.0, 
@@ -52,38 +50,36 @@ const positions = [
      1.0,  0.0,  1.0,
 ];
 
+// Flag for changing between Octahedron and Icosahedron
+const is_octa = true;
+const positions = is_octa ? octa_positions : create_icosahedron_positions();
+
 let normals = [];
 
-const indices = [
-	0, 1, 2,
-	3, 4, 5,
-	6, 7, 8, 
-	9, 10, 11,
-	12, 13, 14,
-	15, 16, 17,
-	18, 19, 20,
-	21, 22, 23,
-];
+const vertexCount = positions.length/3;
 
 // Rot interaction vars
-// const velocity_degredation_time = 5;
 const velocity_change_coeff = 0.005;
 const max_velocity = 0.3;
 const resting_velocity = 0.01;
 const minimum_velocity = 0.0002;
+const starting_z_angle = is_octa 
+	? Math.PI/16
+	: glMatrix.vec3.angle(glMatrix.vec3.fromValues(0,1,0), glMatrix.vec3.fromValues(1,1.618,0));
 
 let prev_mouse_pos = null;
 let prev_mouse_time = null;
 
 let quat = glMatrix.quat.create();
 {
-	glMatrix.quat.rotateZ(quat, quat, Math.PI/16);
+	if(is_octa)
+		glMatrix.quat.rotateZ(quat, quat, starting_z_angle);
 }
 
 let velocity_axis = glMatrix.vec3.fromValues(0.0, 1.0, 0.0); 
 {
 	let origin = glMatrix.vec3.create();
-	glMatrix.vec3.rotateZ(velocity_axis, velocity_axis, origin, Math.PI/16);
+	glMatrix.vec3.rotateZ(velocity_axis, velocity_axis, origin, starting_z_angle);
 }
 let velocity = resting_velocity;
 let prev_quat_buffer = [];
@@ -265,17 +261,17 @@ function initBuffers(gl) {
 
 	// Build the element array buffer; this specifies the indices
 	// into the vertex arrays for each face's vertices.
-	const indexBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+	// const indexBuffer = gl.createBuffer();
+	// gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
 
-	// Now send the element array to GL
-	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,
-	  new Uint16Array(indices), gl.STATIC_DRAW);
+	// // Now send the element array to GL
+	// gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,
+	//   new Uint16Array(indices), gl.STATIC_DRAW);
 
 	return {
 		position: positionBuffer,
 		normal: normalBuffer,
-		indices: indexBuffer,
+		// indices: indexBuffer,
 	};
 }
 
@@ -287,6 +283,8 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
 	gl.clearDepth(1.0);                 // Clear everything
 	gl.enable(gl.DEPTH_TEST);           // Enable depth testing
 	gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
+	gl.enable(gl.CULL_FACE);			// Enable culling
+	gl.cullFace(gl.BACK);				// Cull back faces
 
 	gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA); // For premultiplied alpha being false
 
@@ -387,7 +385,7 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
 	}
 
 	// Tell WebGL which indices to use to index the vertices
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
+	// gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
 
 	// Tell WebGL to use our program when drawing
 	gl.useProgram(programInfo.program);
@@ -403,16 +401,12 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
 		  modelViewMatrix);
 
 	{
-		const vertexCount = 24;
-		const type = gl.UNSIGNED_SHORT;
-		const offset = 0;
-		gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+		// const vertexCount = 24;
+		// const type = gl.UNSIGNED_SHORT;
+		// const offset = 0;
+		// gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
+		gl.drawArrays(gl.TRIANGLES, 0, vertexCount)
 	}
-
-	// Update the rotation for the next draw
-
-	if(!grabbed)
-		cubeRotation += deltaTime;
 }
 
 //
@@ -508,4 +502,76 @@ function handle_rot_mouse_move(e) {
     // Set prevs
     prev_mouse_pos = {x: cur_x, y: cur_y};
     prev_mouse_time = cur_mouse_time;
+}
+
+
+// EXPERIMENTAL
+function create_icosahedron_positions() {
+	const golden = 1.61803398875;
+	const scaling_factor = 0.75;
+	
+	let ico_positions = [];
+
+	// Returns new array rotated 1 to the right
+	let rot1 = function(arr) {
+		let temp = [];
+		temp[0] = arr[arr.length-1];
+		for(let i=1; i<arr.length; i++)
+			temp[i] = arr[i-1];
+		return temp;
+	}
+	// Do triangles on both sides of the 1-length edges of each golden rectangle
+	for(let i=0; i<3; i++) {
+		let index_of_golden = i;
+		let index_of_one = (index_of_golden+2)%3
+		let index_of_next_golden = (index_of_golden+1)%3;
+		let index_of_next_one = index_of_golden;
+		// Construct points for positive-one side
+		let p1 = [0,0,0];
+		p1[index_of_golden] = golden;
+		p1[index_of_one] = 1.0;
+		let p2 = [...p1];
+		p2[index_of_one] = -1.0;
+		let p3 = rot1(p1);
+		let p4 = p3.slice();
+		p4[index_of_next_golden] = -golden;
+		// Construct triangles
+		ico_positions = ico_positions.concat(
+				p1, p2, p3,
+				p2, p1, p4
+			);
+		// Convert points for negative side
+		p1[index_of_golden] = p2[index_of_golden] = -golden;
+		p3[index_of_next_one] = p4[index_of_next_one] = -1.0;
+		ico_positions = ico_positions.concat(
+				p2, p1, p3,
+				p1, p2, p4
+			);
+	}
+	// Fill in the last 8 triangles at the corners, indexed by the X-Y rectangle vertices
+	for(let i=0; i<4; i++) {
+		let x_pos = (i^0b10)&0b10;
+		let y_pos = (i+1)&0b10; // true for 1 and 2
+		console.log(x_pos === y_pos);
+		let p1 = [x_pos ? 1.0 : -1.0, y_pos ? golden : -golden, 0.0]; // X-Y Rect
+		let p2 = [0.0, y_pos ? 1.0 : -1.0, x_pos === y_pos ? golden : -golden]; // Y-Z Rect
+		let p3 = [x_pos ? golden : -golden, 0.0, x_pos === y_pos ? 1.0 : -1.0] // X-Z Rect
+		ico_positions = ico_positions.concat(
+				p1, p2, p3
+			);
+		// Negate z-components for p2 and p3 to get the other side, and place in opposite order
+		p2[2] *= -1;
+		p3[2] *= -1;
+		ico_positions = ico_positions.concat(
+				p1, p3, p2
+			);
+	}
+
+
+	// Scale all points by constant
+	for(let i=0; i<ico_positions.length; i++)
+		ico_positions[i] *= scaling_factor;
+
+	// Return positions
+	return ico_positions;
 }
