@@ -4,7 +4,7 @@
 	By Noah Krim
 	Foundation based off example code from mozilla webgl tutorial
 	https://developer.mozilla.org/en-US/docs/Web/API/WebGL_API/Tutorial/Creating_3D_objects_using_WebGL
-	Model, shaders, and interactivity by Noah Krim
+	Meshes, shaders, and interactivity by Noah Krim
 */
 
 // Octahedron
@@ -208,7 +208,7 @@ $(document).ready(function() {
 		grabbed = true;
 		velocity = 0.0;
 	});	
-	$('#graphics').bind('mouseup mouseleave touchend', () => {
+	$('#graphics').bind('mouseup mouseleave touchend touchcancel', () => {
 		if(!grabbed)
 			return;
 
@@ -456,23 +456,38 @@ function loadShader(gl, type, source) {
 
 // Handle cube rot based on mouse movements
 function handle_rot_mouse_move(e) {
+	console.log(e)
 	if(!grabbed)
 		return;
 
 	let cur_mouse_time = Date.now();
 	let dt = Math.max(cur_mouse_time - prev_mouse_time, 0.001);
 
+	let cur_x, cur_y = null;
 	// Get mouse position
-	e = e || window.event;
+	if(e.type === 'mousemove') {
+		e = e || window.event;
 
-    var cur_x = e.pageX;
-    var cur_y = e.pageY;
+	    cur_x = e.pageX;
+	    cur_y = e.pageY;
 
-    // IE 8
-    if (cur_x === undefined) {
-        cur_x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
-        cur_y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
-    }
+	    // IE 8
+	    if (cur_x === undefined) {
+	        cur_x = e.clientX + document.body.scrollLeft + document.documentElement.scrollLeft;
+	        cur_y = e.clientY + document.body.scrollTop + document.documentElement.scrollTop;
+	    }
+	}
+	else if(e.type === 'touchmove') {
+		e.preventDefault();
+		let touch = e.changedTouches[0]; // Not trying to do any sophisticated so just grab first touch
+		cur_x = touch.pageX;
+		cur_y = touch.pageY;
+	}
+	// Fail case for null cur_x or cur_y
+	if(cur_x === null || cur_y === null) {
+		console.warn('handle_rot_mouse_move: failed to get mouse/touch position: ', e);
+		return;
+	}
 
     // Update quaternion and velocity buffer
     let rot_quat = null;
@@ -505,7 +520,7 @@ function handle_rot_mouse_move(e) {
 }
 
 
-// EXPERIMENTAL
+// EXPERIMENTAL Icosahedron mesh generation
 function create_icosahedron_positions() {
 	const golden = 1.61803398875;
 	const scaling_factor = 0.75;
