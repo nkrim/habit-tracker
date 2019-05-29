@@ -137,8 +137,8 @@ $(document).ready(function() {
 			lowp vec3 light_1 = normalize(-1.25*vec3(2.0, -4.0, -5.0) - vPos);
 			lowp vec3 light_2 = normalize(-1.25*vec3(-2.0, 8.0, 0.0) - vPos);
 
-			lowp float diffuse_1_i = 1.0 * (clamp(dot(light_1, normal), 0.0, 1.0) - 0.0);
-			lowp float diffuse_2_i = 1.0 * (clamp(dot(light_2, normal), 0.0, 1.0) - 0.0);
+			lowp float diffuse_1_i = clamp(dot(light_1, normal), 0.0, 1.0);
+			lowp float diffuse_2_i = clamp(dot(light_2, normal), 0.0, 1.0);
 
 			lowp vec3 diffuse_res = (diffuse_1_i * diffuse_1_col) + (diffuse_2_i * diffuse_2_col);
 			lowp vec3 final_col = vec3(1.0)-diffuse_res;
@@ -545,7 +545,7 @@ function create_icosahedron_positions() {
 		let p1 = [0,0,0];
 		p1[index_of_golden] = golden;
 		p1[index_of_one] = 1.0;
-		let p2 = [...p1];
+		let p2 = p1.slice();
 		p2[index_of_one] = -1.0;
 		let p3 = rot1(p1);
 		let p4 = p3.slice();
