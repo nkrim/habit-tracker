@@ -456,7 +456,6 @@ function loadShader(gl, type, source) {
 
 // Handle cube rot based on mouse movements
 function handle_rot_mouse_move(e) {
-	console.log(e)
 	if(!grabbed)
 		return;
 

@@ -1095,15 +1095,27 @@
 					this.stop_intervals();
 				}).bind(this));
 
-				// Close-popup on Esc press
-				$(document).keydown((function() {
+				// Key down events
+				$(document).keydown((function(event) {
+					// Close-popup on Esc press
 					if(event.which === 27)
 						this.close_popup();
+					// Arrow key month shifting
+					else if(event.which === 37)
+						this.calendar.shift_month_backward();
+					else if(event.which === 39)
+						this.calendar.shift_month_forward();
 				}).bind(this));
 
 				// Window resize handler
 				$(window).resize((function() {
-									this.resize_calendar($('#calendar'));
+					this.resize_calendar($('#calendar'));
+				}).bind(this));
+
+				// Arrow key month shifting
+				$(document).keypress((function(event) {
+					console.log(event)
+					
 				}).bind(this));
 			}
 
