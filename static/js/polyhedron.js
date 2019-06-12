@@ -62,10 +62,11 @@ const vertexCount = positions.length/3;
 const velocity_change_coeff = 0.005;
 const max_velocity = 0.3;
 const resting_velocity = 0.01;
-const minimum_velocity = 0.0002;
+const minimum_velocity = 0.0001;
 const starting_z_angle = is_octa 
 	? Math.PI/16
 	: glMatrix.vec3.angle(glMatrix.vec3.fromValues(0,1,0), glMatrix.vec3.fromValues(1,1.618,0));
+const grab_degrade_coeff = 30;
 
 let prev_mouse_pos = null;
 let prev_mouse_time = null;
@@ -206,7 +207,7 @@ $(document).ready(function() {
 	// Initialize handler for mouse movement for rotation interaction
 	$('#graphics').bind('mousedown touchstart', () => {
 		grabbed = true;
-		velocity = 0.0;
+		// velocity = 0.0;
 	});	
 	$('#graphics').bind('mouseup mouseleave touchend touchcancel', () => {
 		if(!grabbed)
@@ -322,20 +323,32 @@ function drawScene(gl, programInfo, buffers, deltaTime) {
 	             [-0.0, 0.0, -5.0]);  // amount to translate
 
 	// If velocity is stuck at 0, offset by small amount (because degrade function converges to 0 when velocity = 0)
-	if(velocity === 0) {
+	if(!grabbed && (
+			(minimum_velocity > 0 && velocity < minimum_velocity) 
+			|| (minimum_velocity < 0 && velocity > minimum_velocity))) {
 		velocity = resting_velocity > 0 ? minimum_velocity : -minimum_velocity;
 	}
 	// Apply velocity rotation from last grab
-	if(velocity !== 0 && !grabbed) {
+	if(velocity !== 0) {
 		let vel_quat = glMatrix.quat.create();
 		glMatrix.quat.setAxisAngle(vel_quat, velocity_axis, velocity);
 		glMatrix.quat.mul(quat, vel_quat, quat);
 	}
 	// Degrade velocity
-	if(velocity > resting_velocity)
-		velocity = Math.max(resting_velocity, velocity - (velocity*velocity_change_coeff));
-	else if(velocity < resting_velocity)
-		velocity = Math.min(resting_velocity, velocity + (velocity*velocity_change_coeff));
+	// When not grabbed, degrade towards resting velocity
+	if(!grabbed) {
+		if(velocity > resting_velocity)
+			velocity = Math.max(resting_velocity, velocity - (velocity*velocity_change_coeff));
+		else if(velocity < resting_velocity)
+			velocity = Math.min(resting_velocity, velocity + (velocity*velocity_change_coeff));
+	}
+	// When grabbed, degrade towards 0
+	else {
+		if(velocity > 0)
+			velocity = Math.max(0, velocity - (velocity*velocity_change_coeff*grab_degrade_coeff));
+		else if(velocity < 0)
+			velocity = Math.min(0, velocity + (velocity*velocity_change_coeff*grab_degrade_coeff));
+	}
 
 
 	// Apply rotation to modelview matrix
